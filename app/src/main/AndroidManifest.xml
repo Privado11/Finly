@@ -2,7 +2,27 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- §5 y §10 Frontend — permisos mínimos necesarios -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Android 13+ — notificaciones locales de la app (§10) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Biometría -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <!-- Batería — WorkManager fiable con Doze (§7 informe) -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <!-- Lista de apps instaladas para whitelist (§3.2 informe) — declarado y justificado para Play Console -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
+    <!-- Opcional: listar apps sin QUERY_ALL_PACKAGES en Android 11+ — fallback via <queries> -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+        </intent>
+    </queries>
+
     <application
+        android:name=".FinlyApp"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -11,6 +31,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Finly">
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -19,10 +40,21 @@
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- §5 Frontend — escucha reactiva de notificaciones bancarias (activación manual en Ajustes) -->
+        <service
+            android:name=".service.BankNotificationListener"
+            android:exported="true"
+            android:label="Finly — captura bancaria"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
     </application>
 
 </manifest>
