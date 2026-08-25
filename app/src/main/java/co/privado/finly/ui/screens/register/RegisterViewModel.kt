@@ -1,4 +1,4 @@
-package co.privado.finly.ui.screens.login
+package co.privado.finly.ui.screens.register
 
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
@@ -17,86 +17,83 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-data class LoginUiState(
+data class RegisterUiState(
+    val firstName: String = "",
+    val lastName: String = "",
     val email: String = "",
     val password: String = "",
+    val confirmPassword: String = "",
     val isLoading: Boolean = false,
     val error: String? = null
 )
 
 @HiltViewModel
-class LoginViewModel @Inject constructor(
+class RegisterViewModel @Inject constructor(
     private val authRepository: AuthRepository
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow(LoginUiState())
-    val uiState: StateFlow<LoginUiState> = _uiState
+    private val _uiState = MutableStateFlow(RegisterUiState())
+    val uiState: StateFlow<RegisterUiState> = _uiState
 
+    fun onFirstNameChange(v: String) = _uiState.update { it.copy(firstName = v, error = null) }
+    fun onLastNameChange(v: String) = _uiState.update { it.copy(lastName = v, error = null) }
     fun onEmailChange(v: String) = _uiState.update { it.copy(email = v.trim(), error = null) }
     fun onPasswordChange(v: String) = _uiState.update { it.copy(password = v, error = null) }
+    fun onConfirmPasswordChange(v: String) = _uiState.update { it.copy(confirmPassword = v, error = null) }
 
     private fun validar(): String? {
         val s = _uiState.value
+        if (s.firstName.isBlank()) return "Ingresa tu nombre"
+        if (s.lastName.isBlank()) return "Ingresa tu apellido"
         if (s.email.isBlank() || !s.email.contains("@")) return "Ingresa un email válido"
         if (s.password.length < 6) return "La contraseña debe tener al menos 6 caracteres"
+        if (s.password != s.confirmPassword) return "Las contraseñas no coinciden"
         return null
     }
 
-    fun login(onSuccess: () -> Unit) {
+    fun register(onSuccess: () -> Unit) {
         val msg = validar()
         if (msg != null) { _uiState.update { it.copy(error = msg) }; return }
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
-            val res = authRepository.login(_uiState.value.email, _uiState.value.password)
+            val s = _uiState.value
+            val res = authRepository.signUp(s.email, s.password, s.firstName.trim(), s.lastName.trim())
             if (res.isSuccess) onSuccess()
             else _uiState.update { it.copy(error = mapError(res.exceptionOrNull())) }
             _uiState.update { it.copy(isLoading = false) }
         }
     }
 
-    fun loginWithGoogle(activity: FragmentActivity, onSuccess: () -> Unit) {
+    fun registerWithGoogle(activity: FragmentActivity, onSuccess: () -> Unit) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             try {
                 if (BuildConfig.GOOGLE_WEB_CLIENT_ID.isBlank()) {
-                    _uiState.update { it.copy(error = "Google Sign-In no configurado") }
-                    return@launch
+                    _uiState.update { it.copy(error = "Google Sign-In no configurado") }; return@launch
                 }
                 val credentialManager = CredentialManager.create(activity)
-                val googleIdOption = GetGoogleIdOption.Builder()
+                val option = GetGoogleIdOption.Builder()
                     .setFilterByAuthorizedAccounts(false)
                     .setServerClientId(BuildConfig.GOOGLE_WEB_CLIENT_ID)
                     .build()
-                val request = GetCredentialRequest.Builder()
-                    .addCredentialOption(googleIdOption)
-                    .build()
+                val request = GetCredentialRequest.Builder().addCredentialOption(option).build()
                 val result = credentialManager.getCredential(activity, request)
-                val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(result.credential.data)
-                val idToken = googleIdTokenCredential.idToken
-                val res = authRepository.signInWithGoogle(idToken)
-                if (res.isSuccess) onSuccess()
-                else _uiState.update { it.copy(error = mapError(res.exceptionOrNull())) }
+                val cred = GoogleIdTokenCredential.createFrom(result.credential.data)
+                val res = authRepository.signInWithGoogle(cred.idToken)
+                if (res.isSuccess) onSuccess() else _uiState.update { it.copy(error = mapError(res.exceptionOrNull())) }
             } catch (e: GetCredentialException) {
-                // Usuario cancela o no hay credencial disponible — no spamear error
-                val msg = e.message ?: ""
-                if (msg.contains("canceled", true) || msg.contains("cancel", true)) {
-                    // silencio
-                } else {
-                    _uiState.update { it.copy(error = "No se pudo obtener credencial de Google: ${e.message}") }
-                }
+                if (!e.message.orEmpty().contains("canceled", true))
+                    _uiState.update { it.copy(error = "No se pudo obtener credencial de Google") }
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = mapError(e)) }
-            } finally {
-                _uiState.update { it.copy(isLoading = false) }
-            }
+            } finally { _uiState.update { it.copy(isLoading = false) } }
         }
     }
 
     private fun mapError(t: Throwable?): String {
         val raw = t?.message ?: "Error desconocido"
         return when {
-            raw.contains("Invalid login", true) || raw.contains("invalid_credentials", true) -> "Email o contraseña incorrectos"
-            raw.contains("Email not confirmed", true) -> "Confirma tu email antes de ingresar"
-            raw.contains("network", true) || raw.contains("Unable to resolve", true) -> "Sin conexión a internet"
+            raw.contains("already registered", true) || raw.contains("User already registered", true) -> "Ese email ya está registrado"
+            raw.contains("network", true) -> "Sin conexión a internet"
             else -> raw.take(180)
         }
     }

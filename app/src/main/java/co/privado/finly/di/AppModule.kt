@@ -4,6 +4,9 @@ import co.privado.finly.BuildConfig
 import co.privado.finly.data.local.ColaOfflineDataSource
 import co.privado.finly.data.local.SessionDataStore
 import co.privado.finly.data.repository.AuthRepositoryImpl
+import co.privado.finly.data.repository.AccountRepositoryImpl
+import co.privado.finly.data.repository.CategoryRepositoryImpl
+import co.privado.finly.data.repository.TransactionRepositoryImpl
 import co.privado.finly.data.repository.ProcesadorNotificaciones
 import co.privado.finly.domain.repository.AuthRepository
 import co.privado.finly.service.NotificadorApp
@@ -47,6 +50,18 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindAuthRepository(impl: AuthRepositoryImpl): AuthRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindAccountRepository(impl: AccountRepositoryImpl): co.privado.finly.domain.repository.AccountRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindCategoryRepository(impl: CategoryRepositoryImpl): co.privado.finly.domain.repository.CategoryRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindTransactionRepository(impl: TransactionRepositoryImpl): co.privado.finly.domain.repository.TransactionRepository
 
     @Binds
     @Singleton

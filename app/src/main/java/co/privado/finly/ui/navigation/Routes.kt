@@ -2,6 +2,7 @@ package co.privado.finly.ui.navigation
 
 object Routes {
     const val Login = "login"
+    const val Register = "register"
     const val BiometricLock = "biometric_lock"
     const val Home = "home"
     const val Transactions = "transactions"

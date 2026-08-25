@@ -3,6 +3,7 @@ package co.privado.finly.data.repository
 import co.privado.finly.domain.model.AllowedApp
 import co.privado.finly.domain.repository.WhitelistRepository
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -23,8 +24,10 @@ class WhitelistRepositoryImpl @Inject constructor(
         supabase.from("allowed_apps").select().decodeList()
     }
     override suspend fun setAllowed(packageName: String, displayName: String, active: Boolean): Result<Unit> = runCatching {
+        val userId = supabase.auth.currentUserOrNull()?.id
+            ?: throw IllegalStateException("Tu sesión expiró. Inicia sesión nuevamente.")
         supabase.from("allowed_apps").upsert(
-            AllowedApp(packageName = packageName, displayName = displayName, active = active)
+            AllowedApp(userId = userId, packageName = packageName, displayName = displayName, active = active)
         )
         Unit
     }

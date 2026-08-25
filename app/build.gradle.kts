@@ -104,6 +104,7 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
 
     // Biometric
+    implementation(libs.androidx.fragment.ktx)
     implementation(libs.androidx.biometric)
 
     // Credential Manager + GoogleId (Google Sign-In moderno)
