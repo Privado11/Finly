@@ -1,9 +1,9 @@
 package co.privado.finly.data.repository
 
+import co.privado.finly.data.local.SessionDataStore
 import co.privado.finly.domain.model.Transaction
 import co.privado.finly.domain.repository.TransactionRepository
 import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -11,7 +11,6 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import javax.inject.Inject
 import javax.inject.Singleton
-import co.privado.finly.data.local.SessionDataStore
 
 @Serializable
 private data class TransactionPayload(
@@ -41,7 +40,7 @@ class TransactionRepositoryImpl @Inject constructor(
         supabase.from("transactions").select { filter { eq("id", id) } }.decodeSingle<Transaction>()
     }
     override suspend fun addTransaction(transaction: Transaction): Result<Transaction> = runCatching {
-        val userId = sessionStore.getUserId() ?: throw IllegalStateException("Tu sesión expiró. Inicia sesión nuevamente.")
+        val userId = sessionStore.getUserId() ?: throw java.lang.IllegalStateException("Tu sesión expiró. Inicia sesión nuevamente.")
         val payload = TransactionPayload(userId, transaction.sourceAccountId, transaction.destinationAccountId, transaction.categoryId, transaction.type, transaction.amount, transaction.currency, transaction.merchant, transaction.description, transaction.source, transaction.date)
         supabase.from("transactions").insert(payload) { select() }.decodeSingle<Transaction>()
     }
@@ -49,4 +48,8 @@ class TransactionRepositoryImpl @Inject constructor(
     override suspend fun existsDuplicate(amount: Double, sourceAccountId: String, windowMinutes: Int): Boolean = runCatching {
         supabase.from("transactions").select { filter { eq("source_account_id", sourceAccountId); eq("amount", amount) } }.decodeList<Transaction>().isNotEmpty()
     }.getOrDefault(false)
+
+    override fun clearCache() {
+        // No local cache to clear in this implementation
+    }
 }

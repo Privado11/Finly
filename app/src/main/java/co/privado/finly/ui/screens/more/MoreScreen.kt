@@ -1,5 +1,6 @@
 package co.privado.finly.ui.screens.more
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,47 +11,55 @@ import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.RateReview
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import co.privado.finly.ui.theme.*
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MoreScreen(
     onNavigateToAccounts: () -> Unit,
     onNavigateToCategories: () -> Unit,
-    onNavigateToReview: () -> Unit
+    onNavigateToReview: () -> Unit,
+    onNavigateToSettings: () -> Unit
 ) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text("Más opciones", style = MaterialTheme.typography.titleLarge)
-                        Text(
-                            "Configuración y herramientas",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            )
-        }
-    ) { padding ->
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(ColorInk)
+    ) {
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = "AJUSTES",
+            style = TypographyEyebrow,
+            color = ColorBrass,
+            modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 4.dp)
+        )
+        Text("Más opciones", fontFamily = Fraunces, color = ColorBone, fontSize = 28.sp, modifier = Modifier.padding(horizontal = 24.dp))
+        Spacer(Modifier.height(4.dp))
+        Text("Configuración y herramientas", fontFamily = Inter, color = ColorSlate, fontSize = 14.sp, modifier = Modifier.padding(horizontal = 24.dp))
+        Spacer(Modifier.height(24.dp))
+
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(20.dp),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
                 Text(
                     "Gestión",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(bottom = 4.dp)
+                    fontFamily = Inter,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                    color = ColorBrass,
+                    modifier = Modifier.padding(horizontal = 4.dp).padding(bottom = 4.dp)
                 )
             }
             item {
@@ -78,21 +87,22 @@ fun MoreScreen(
                 )
             }
             item {
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    "Próximamente",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
-            }
-            item {
                 MoreMenuItem(
                     icon = Icons.Filled.Settings,
                     title = "Configuración",
                     subtitle = "Tema, biometría, permisos y cuenta",
-                    onClick = {},
-                    enabled = false
+                    onClick = onNavigateToSettings
+                )
+            }
+            item {
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    "Próximamente",
+                    fontFamily = Inter,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                    color = ColorSlate,
+                    modifier = Modifier.padding(horizontal = 4.dp).padding(bottom = 4.dp)
                 )
             }
             item {
@@ -104,6 +114,7 @@ fun MoreScreen(
                     enabled = false
                 )
             }
+            item { Spacer(Modifier.height(100.dp)) }
         }
     }
 }
@@ -119,7 +130,7 @@ private fun MoreMenuItem(
     val alpha = if (enabled) 1f else 0.45f
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = alpha),
+        color = ColorSurface,
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -131,13 +142,13 @@ private fun MoreMenuItem(
         ) {
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f * alpha),
+                color = if (enabled) ColorBrass.copy(alpha = 0.15f) else ColorSlate.copy(alpha = 0.1f),
                 modifier = Modifier.size(44.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         icon, null,
-                        tint = MaterialTheme.colorScheme.primary.copy(alpha = alpha),
+                        tint = if (enabled) ColorBrass else ColorSlate,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -146,13 +157,17 @@ private fun MoreMenuItem(
             Column(Modifier.weight(1f)) {
                 Text(
                     title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha)
+                    fontFamily = Inter,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp,
+                    color = ColorBone.copy(alpha = alpha)
                 )
+                Spacer(Modifier.height(2.dp))
                 Text(
                     subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha)
+                    fontFamily = Inter,
+                    fontSize = 13.sp,
+                    color = ColorSlate.copy(alpha = alpha)
                 )
             }
         }

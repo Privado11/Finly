@@ -1,0 +1,1 @@
+sed -i '/composable(Routes.Settings)/,/onBack = {/c \            composable(Routes.Settings) { \n                co.privado.finly.ui.screens.settings.SettingsScreen(\n                    onLogout = onLogout,\n                    onBack = { nav.popBackStack() }' /home/walter/AndroidStudioProjects/Finly/app/src/main/java/co/privado/finly/ui/navigation/MainScreen.kt

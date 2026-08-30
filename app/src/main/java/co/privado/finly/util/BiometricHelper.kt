@@ -9,8 +9,8 @@ import androidx.fragment.app.FragmentActivity
 object BiometricHelper {
     fun puedeAutenticar(context: Context): Boolean {
         val manager = BiometricManager.from(context)
-        return manager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) ==
-            BiometricManager.BIOMETRIC_SUCCESS
+        val canAuth = manager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.DEVICE_CREDENTIAL)
+        return canAuth == BiometricManager.BIOMETRIC_SUCCESS || canAuth == BiometricManager.BIOMETRIC_STATUS_UNKNOWN
     }
 
     fun mostrarPrompt(
@@ -26,8 +26,8 @@ object BiometricHelper {
         })
         val info = BiometricPrompt.PromptInfo.Builder()
             .setTitle("Desbloquear Finly")
-            .setSubtitle("Usa tu huella para continuar")
-            .setNegativeButtonText("Usar contraseña")
+            .setSubtitle("Usa tu huella o PIN para continuar")
+            .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.DEVICE_CREDENTIAL)
             .build()
         prompt.authenticate(info)
     }

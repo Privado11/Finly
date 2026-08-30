@@ -9,4 +9,5 @@ interface AccountRepository {
     suspend fun addAccount(name: String, type: co.privado.finly.domain.model.AccountType, currency: String = "COP"): Result<Account>
     suspend fun updateAccount(account: Account): Result<Account>
     suspend fun deleteAccount(id: String): Result<Unit>
+    fun clearCache()
 }

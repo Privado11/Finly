@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material3.Icon
@@ -50,17 +49,9 @@ import co.privado.finly.ui.theme.Fraunces
 import co.privado.finly.ui.theme.Inter
 import co.privado.finly.util.BiometricHelper
 
-/**
- * Pantalla de desbloqueo biométrico.
- * Diseño según finly-design-system.html §06:
- *   - Anillo circular con arco en ColorBrass (78% del círculo)
- *   - Icono de huella centrado en ColorBrass
- *   - Título Fraunces "Hola de nuevo, <nombre>"
- *   - Subtítulo Inter slate
- *   - Link "Usar contraseña en su lugar" en brass
- */
 @Composable
 fun BiometricLockScreen(
+    userName: String = "Usuario",
     onUnlocked: () -> Unit = {},
     onUsePassword: () -> Unit = {}
 ) {
@@ -72,6 +63,8 @@ fun BiometricLockScreen(
         canAuth = activity?.let(BiometricHelper::puedeAutenticar) ?: false
         if (canAuth) triggerBiometric(activity, onUnlocked) { errorMsg = it }
     }
+
+    val firstName = userName.split(" ").firstOrNull() ?: ""
 
     Box(
         modifier = Modifier
@@ -87,8 +80,6 @@ fun BiometricLockScreen(
             verticalArrangement = Arrangement.Center
         ) {
 
-            // ── Anillo con arco en brass ─────────────────────────────────────
-            // Replica: .lock-ring con ::before conic-gradient brass 78%
             Box(
                 modifier = Modifier
                     .size(140.dp)
@@ -99,7 +90,6 @@ fun BiometricLockScreen(
                             val arcRect = Size(size.width - strokeWidth, size.height - strokeWidth)
                             val topLeft = Offset(inset, inset)
 
-                            // Pista completa — ColorHair
                             drawArc(
                                 color = ColorHair,
                                 startAngle = -90f,
@@ -110,7 +100,6 @@ fun BiometricLockScreen(
                                 style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
                             )
 
-                            // Arco activo — brass (78% de 360° = 280.8°)
                             drawArc(
                                 brush = Brush.sweepGradient(
                                     0f to ColorBrass,
@@ -129,7 +118,6 @@ fun BiometricLockScreen(
                     },
                 contentAlignment = Alignment.Center
             ) {
-                // Icono de huella dentro del anillo
                 Icon(
                     imageVector = Icons.Filled.Fingerprint,
                     contentDescription = "Huella digital",
@@ -140,9 +128,8 @@ fun BiometricLockScreen(
 
             Spacer(Modifier.height(26.dp))
 
-            // ── Título — Fraunces 20sp ───────────────────────────────────────
             Text(
-                text = "Hola de nuevo",
+                text = "Hola de nuevo, $firstName",
                 style = TextStyle(
                     fontFamily = Fraunces,
                     fontWeight = FontWeight.Medium,
@@ -154,7 +141,6 @@ fun BiometricLockScreen(
 
             Spacer(Modifier.height(8.dp))
 
-            // ── Subtítulo — Inter slate ──────────────────────────────────────
             Text(
                 text = if (canAuth)
                     "Usa tu huella para continuar"
@@ -171,19 +157,17 @@ fun BiometricLockScreen(
 
             Spacer(Modifier.height(34.dp))
 
-            // ── Botón principal (solo si hay huella disponible) ─────────────
             if (canAuth) {
                 PrimaryAuthButton(
-                    text = "Desbloquear con huella",
+                    text = "Desbloquear",
                     loading = false,
                     onClick = { triggerBiometric(activity, onUnlocked) { errorMsg = it } }
                 )
                 Spacer(Modifier.height(20.dp))
             }
 
-            // ── "Usar contraseña en su lugar" — texto brass clickable ────────
             Text(
-                text = "Usar contraseña en su lugar",
+                text = "Iniciar sesión con otra cuenta",
                 style = TextStyle(
                     fontFamily = Inter,
                     fontWeight = FontWeight.SemiBold,
@@ -195,7 +179,6 @@ fun BiometricLockScreen(
                     .padding(vertical = 8.dp)
             )
 
-            // ── Mensaje de error (huella no reconocida) ──────────────────────
             errorMsg?.let { msg ->
                 Spacer(Modifier.height(20.dp))
                 Text(
@@ -203,7 +186,7 @@ fun BiometricLockScreen(
                     style = TextStyle(
                         fontFamily = Inter,
                         fontSize = 12.sp,
-                        color = Color(0xFFBE7B62) // ColorClay directo para no importar extra
+                        color = Color(0xFFBE7B62)
                     ),
                     textAlign = TextAlign.Center
                 )
@@ -224,6 +207,6 @@ private fun triggerBiometric(
     BiometricHelper.mostrarPrompt(
         activity = activity,
         onExito = onSuccess,
-        onFallo = { onError("Huella no reconocida. Intenta de nuevo o usa tu contraseña.") }
+        onFallo = { onError("Huella no reconocida. Intenta de nuevo o usa tu PIN.") }
     )
 }

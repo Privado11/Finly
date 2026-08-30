@@ -15,4 +15,5 @@ object Routes {
     const val AllowedApps = "allowed_apps"
     const val ReviewQueue = "review_queue"
     const val More = "more"
+    const val Settings = "settings"
 }

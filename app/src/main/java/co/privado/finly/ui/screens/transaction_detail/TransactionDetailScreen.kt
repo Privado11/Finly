@@ -203,42 +203,25 @@ fun TransactionDetailScreen(onBack: () -> Unit, viewModel: TransactionDetailView
                     if (showDeleteDialog) {
                         AlertDialog(
                             onDismissRequest = { showDeleteDialog = false },
-                            icon = {
-                                Icon(
-                                    imageVector = androidx.compose.material.icons.Icons.Default.Warning,
-                                    contentDescription = "Advertencia",
-                                    tint = ColorClay,
-                                    modifier = Modifier.size(32.dp)
-                                )
-                            },
-                            title = { Text("Eliminar movimiento", fontFamily = Fraunces, color = ColorBone, fontSize = 20.sp) },
-                            text = { 
-                                Text(
-                                    text = "¿Estás seguro de que deseas eliminar este movimiento?\n\nEsta acción no se puede deshacer.", 
-                                    color = ColorSlate,
-                                    fontSize = 15.sp,
-                                    lineHeight = 22.sp
-                                ) 
-                            },
+                            title = { Text("Eliminar movimiento", fontFamily = Fraunces, color = ColorBone) },
+                            text = { Text("¿Estás seguro de que deseas eliminar este movimiento? Esta acción no se puede deshacer.", fontFamily = Inter, color = ColorSlate) },
                             confirmButton = {
                                 Button(
                                     onClick = {
                                         showDeleteDialog = false
                                         viewModel.deleteTransaction()
                                     },
-                                    colors = ButtonDefaults.buttonColors(containerColor = ColorClay, contentColor = ColorBone),
-                                    shape = RoundedCornerShape(12.dp)
+                                    colors = ButtonDefaults.buttonColors(containerColor = ColorError, contentColor = ColorBone)
                                 ) {
-                                    Text("Eliminar", style = TextStyle(fontFamily = Inter, fontWeight = FontWeight.SemiBold))
+                                    Text("Eliminar", fontFamily = Inter, fontWeight = FontWeight.Bold)
                                 }
                             },
                             dismissButton = {
                                 TextButton(onClick = { showDeleteDialog = false }) {
-                                    Text("Cancelar", color = ColorBone)
+                                    Text("Cancelar", fontFamily = Inter, color = ColorSlate)
                                 }
                             },
-                            containerColor = ColorSurface,
-                            shape = RoundedCornerShape(24.dp)
+                            containerColor = ColorSurface
                         )
                     }
                 }

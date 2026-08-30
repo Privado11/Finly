@@ -1,12 +1,20 @@
 package co.privado.finly.ui.navigation
+import kotlinx.coroutines.flow.collectLatest
 
 import androidx.compose.animation.EnterTransition
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.Snackbar
+import kotlinx.coroutines.launch
 import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
@@ -131,7 +139,7 @@ fun FinlyBottomNav(
 }
 
 @Composable
-fun FinlyFab(onClick: () -> Unit) {
+fun FinlyFab(text: String = "Movimiento", onClick: () -> Unit) {
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(20.dp),
@@ -146,7 +154,7 @@ fun FinlyFab(onClick: () -> Unit) {
             Icon(Icons.Filled.Add, contentDescription = "Movimiento", modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(7.dp))
             Text(
-                text = "Movimiento",
+                text = text,
                 style = TextStyle(
                     fontFamily = Inter,
                     fontWeight = FontWeight.SemiBold,
@@ -157,13 +165,38 @@ fun FinlyFab(onClick: () -> Unit) {
     }
 }
 
+
 @Composable
-fun MainScreen() {
+fun MainScreen(
+    onLogout: () -> Unit = {},viewModel: MainViewModel = hiltViewModel()) {
     val nav = rememberNavController()
     val navBackStackEntry by nav.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
     val isMainRoute = currentDestination?.route in bottomNavItems.map { it.route }
+    
+    val snackbarHostState = remember { SnackbarHostState() }
+    
+    LaunchedEffect(Unit) {
+        launch {
+            viewModel.transactionUpdateNotifier.created.collectLatest {
+                snackbarHostState.currentSnackbarData?.dismiss()
+                snackbarHostState.showSnackbar("Movimiento guardado", withDismissAction = true)
+            }
+        }
+        launch {
+            viewModel.transactionUpdateNotifier.deleted.collectLatest {
+                snackbarHostState.currentSnackbarData?.dismiss()
+                snackbarHostState.showSnackbar("Movimiento eliminado", withDismissAction = true)
+            }
+        }
+        launch {
+            viewModel.globalMessageNotifier.message.collectLatest { msg ->
+                snackbarHostState.currentSnackbarData?.dismiss()
+                snackbarHostState.showSnackbar(msg, withDismissAction = true)
+            }
+        }
+    }
 
     Scaffold(
         modifier = Modifier.systemBarsPadding(),
@@ -189,13 +222,14 @@ fun MainScreen() {
             }
         }
     ) { padding ->
-        NavHost(
-            navController = nav,
-            startDestination = Routes.Home,
-            modifier = Modifier.fillMaxSize().padding(padding).background(ColorInk),
-            enterTransition = { EnterTransition.None },
-            exitTransition = { ExitTransition.None }
-        ) {
+        Box(modifier = Modifier.fillMaxSize().padding(padding).background(ColorInk)) {
+            NavHost(
+                navController = nav,
+                startDestination = Routes.Home,
+                modifier = Modifier.fillMaxSize(),
+                enterTransition = { EnterTransition.None },
+                exitTransition = { ExitTransition.None }
+            ) {
             composable(Routes.Home) { HomeScreen(onNavigateToAccounts = { nav.navigate(Routes.Accounts) }, onTransactionClick = { id -> nav.navigate("${Routes.TransactionDetail}/$id") }) }
             composable(Routes.History) { HistoryScreen(onTransactionClick = { id -> nav.navigate("${Routes.TransactionDetail}/$id") }) }
             composable(
@@ -212,11 +246,49 @@ fun MainScreen() {
                 MoreScreen(
                     onNavigateToAccounts = { nav.navigate(Routes.Accounts) },
                     onNavigateToCategories = { nav.navigate(Routes.Categories) },
-                    onNavigateToReview = { nav.navigate(Routes.ReviewQueue) }
+                    onNavigateToReview = { nav.navigate(Routes.ReviewQueue) },
+                    onNavigateToSettings = { nav.navigate(Routes.Settings) }
                 )
             }
             composable(Routes.Categories) { CategoriesScreen() }
             composable(Routes.ReviewQueue) { ReviewScreen() }
+            composable(Routes.Settings) { 
+                co.privado.finly.ui.screens.settings.SettingsScreen(
+                    onLogout = onLogout,
+                    onBack = { nav.popBackStack() }
+                ) 
+            }
+        }
+        
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 16.dp)
+                .wrapContentWidth()
+        ) { data ->
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = ColorBrass,
+                contentColor = ColorOnBrass,
+                shadowElevation = 8.dp,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 13.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = data.visuals.message,
+                        style = TextStyle(
+                            fontFamily = Inter,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 13.sp
+                        )
+                    )
+                }
+            }
         }
     }
+}
 }

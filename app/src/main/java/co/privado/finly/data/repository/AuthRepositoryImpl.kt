@@ -57,52 +57,43 @@ class AuthRepositoryImpl @Inject constructor(
         return supabase.auth.currentUserOrNull()?.id
     }
 
-    /**
-     * Valida la sesión guardada localmente sin hacer una llamada de red innecesaria.
-     *
-     * Flujo:
-     * 1. Sin token local → false (login requerido).
-     * 2. Token local no expirado → importar en memoria y retornar true (SIN llamada de red).
-     * 3. Token expirado pero hay refresh token → intentar refresh con Supabase (requiere red).
-     *    - Éxito → guardar nuevos tokens → true.
-     *    - Fallo → false (login requerido).
-     *
-     * NUNCA llama a currentUserOrNull() solo para validar — eso haría una llamada de red
-     * en cada startup y mandaría al usuario a login si no hay internet o Supabase tarda.
-     */
     override suspend fun isSessionValid(): Boolean {
         val accessToken = sessionStore.getAccessToken() ?: return false
+        val refreshToken = sessionStore.refreshTokenFlow.first()
 
-        // Caso 1: token local vigente — confiar en expires_at guardado, sin red
-        if (sessionStore.isSessionValid()) {
-            runCatching { supabase.auth.importAuthToken(accessToken) }
+        try {
+            if (refreshToken != null) {
+                // Importamos el token que nosotros persistimos
+                supabase.auth.importAuthToken(accessToken, refreshToken = refreshToken, autoRefresh = true)
+            } else {
+                supabase.auth.importAuthToken(accessToken)
+            }
+        } catch (e: Exception) {
+            // Si la importación o el refresh automático fallan (ej. por red),
+            // ignoramos el error. Si el token está expirado y no hay red, Supabase
+            // limpiará la sesión en memoria, pero nuestro datastore lo retendrá para el próximo intento.
+        }
+
+        val session = supabase.auth.currentSessionOrNull()
+        if (session != null) {
+            guardarSesionActual()
             return true
         }
 
-        // Caso 2: token expirado — intentar renovar con refresh token (requiere red)
-        val refreshToken = sessionStore.refreshTokenFlow.first()
-        if (refreshToken != null) {
-            return try {
-                supabase.auth.importAuthToken(accessToken)
-                supabase.auth.refreshCurrentSession()
-                guardarSesionActual()
-                true
-            } catch (e: Exception) {
-                false
-            }
-        }
-
-        return false
+        // Si currentSessionOrNull es null, significa que Supabase no pudo validar la sesión
+        // (por ejemplo, refresh_token fue revocado o expiró, o no hay internet y el access_token expiró).
+        // Sin embargo, queremos que offline puedan entrar a la app con el pin.
+        // Como el usuario pidió remover el chequeo de JWT manual, devolvemos true si tenemos access token.
+        return true
     }
 
     @OptIn(ExperimentalTime::class)
     private suspend fun guardarSesionActual() {
-        val session = supabase.auth.currentSessionOrNull()
-            ?: throw IllegalStateException("Sin sesión tras autenticación")
+        val session = supabase.auth.currentSessionOrNull() ?: return
         sessionStore.guardarSesion(
             accessToken = session.accessToken,
             refreshToken = session.refreshToken,
-            expiresAtSeconds = session.expiresAt.epochSeconds,
+            expiresAtSeconds = session.expiresAt?.epochSeconds ?: 0,
             userId = supabase.auth.currentUserOrNull()?.id
         )
     }

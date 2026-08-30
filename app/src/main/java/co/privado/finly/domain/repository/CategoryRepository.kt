@@ -9,4 +9,5 @@ interface CategoryRepository {
     suspend fun getCategories(forceRefresh: Boolean = false): Result<List<Category>>
     suspend fun addCategory(name: String, type: CategoryType, icon: String? = null, color: String? = null): Result<Category>
     suspend fun deleteCategory(id: String): Result<Unit>
+    fun clearCache()
 }

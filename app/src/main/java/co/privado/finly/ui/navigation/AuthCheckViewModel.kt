@@ -6,7 +6,10 @@ import co.privado.finly.data.local.SessionDataStore
 import co.privado.finly.domain.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -24,6 +27,10 @@ class AuthCheckViewModel @Inject constructor(
 ) : ViewModel() {
     private val _state = MutableStateFlow<AuthState>(AuthState.Loading)
     val state: StateFlow<AuthState> = _state
+    
+    val userName: StateFlow<String> = sessionStore.userDisplayState
+        .map { it.first }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, "Usuario")
 
     init { refresh() }
 
@@ -39,10 +46,16 @@ class AuthCheckViewModel @Inject constructor(
                 // Solo llegamos aquí si isSessionValid lanzó excepción (ej. red caída durante refresh).
                 sessionStore.isSessionValid()
             }
-            _state.value = if (valid) AuthState.NeedsBiometric else AuthState.Unauthenticated
+            if (valid) {
+                val needsBio = sessionStore.isBiometricEnabled()
+                _state.value = if (needsBio) AuthState.NeedsBiometric else AuthState.Authenticated
+            } else {
+                _state.value = AuthState.Unauthenticated
+            }
         }
     }
 
     fun onBiometricSuccess() { _state.value = AuthState.Authenticated }
     fun onLogout() { _state.value = AuthState.Unauthenticated }
-}
+    }
+

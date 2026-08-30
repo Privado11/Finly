@@ -1,17 +1,7 @@
 package co.privado.finly.ui.screens.accounts
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,12 +11,14 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.PhoneAndroid
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -39,6 +31,12 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.background
+import androidx.compose.ui.unit.sp
+import co.privado.finly.ui.theme.*
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,11 +45,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import co.privado.finly.domain.model.Account
 import co.privado.finly.domain.model.AccountType
+import co.privado.finly.ui.navigation.FinlyFab
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,41 +57,39 @@ fun AccountsScreen(viewModel: AccountsViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
-        modifier = Modifier,
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text("Cuentas", style = MaterialTheme.typography.titleLarge)
-                        Text("Organiza dónde está tu dinero", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-            )
-        },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                text = { Text("Nueva cuenta") },
-                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                onClick = { viewModel.showCreateDialog(true) }
-            )
+        modifier = Modifier.background(ColorInk),
+        containerColor = ColorInk,
+        floatingActionButton = { 
+            FinlyFab(text = "Cuenta") { viewModel.showCreateDialog(true) }
         }
     ) { padding ->
-        when {
-            uiState.isLoading -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-            uiState.accounts.isEmpty() -> EmptyAccounts(Modifier.fillMaxSize().padding(padding)) { viewModel.showCreateDialog(true) }
-            else -> LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 96.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                item {
-                    Text("Tus cuentas activas", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            Text(
+                text = "CUENTAS",
+                style = TypographyEyebrow,
+                color = ColorBrass,
+                modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 4.dp, top = 24.dp)
+            )
+            
+            when {
+                uiState.isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = ColorBrass) }
+                uiState.accounts.isEmpty() -> EmptyAccounts(Modifier.fillMaxSize()) { viewModel.showCreateDialog(true) }
+                else -> LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 96.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(uiState.accounts, key = { it.id }) { account -> 
+                        AccountCard(account, onDelete = { viewModel.showDeleteDialog(account) }) 
+                    }
                 }
-                items(uiState.accounts, key = { it.id }) { account -> AccountCard(account) }
             }
         }
     }
-
     if (uiState.showCreateDialog) {
         CreateAccountDialog(
             isSaving = uiState.isSaving,
@@ -101,12 +97,38 @@ fun AccountsScreen(viewModel: AccountsViewModel = hiltViewModel()) {
             onCreate = viewModel::createAccount
         )
     }
+    uiState.accountToDelete?.let { account ->
+        AlertDialog(
+            onDismissRequest = { if (!uiState.isSaving) viewModel.showDeleteDialog(null) },
+            title = { Text("Eliminar cuenta", fontFamily = Fraunces, color = ColorBone) },
+            text = { Text("¿Estás seguro de que quieres eliminar la cuenta '${account.name}'? Esta acción no se puede deshacer.", fontFamily = Inter, color = ColorSlate) },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.deleteAccount(account) },
+                    enabled = !uiState.isSaving,
+                    colors = ButtonDefaults.buttonColors(containerColor = ColorError, contentColor = ColorBone)
+                ) {
+                    if (uiState.isSaving) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = ColorBone)
+                    else Text("Eliminar", fontFamily = Inter, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.showDeleteDialog(null) }, enabled = !uiState.isSaving) {
+                    Text("Cancelar", fontFamily = Inter, color = ColorSlate)
+                }
+            },
+            containerColor = ColorSurface
+        )
+    }
     uiState.error?.let { message ->
         AlertDialog(
             onDismissRequest = viewModel::dismissError,
-            confirmButton = { TextButton(onClick = viewModel::dismissError) { Text("Entendido") } },
-            title = { Text("No pudimos completar la acción") },
-            text = { Text(message) }
+            confirmButton = { TextButton(onClick = viewModel::dismissError) { Text("Entendido", color = ColorBrass) } },
+            title = { Text("Ups...", fontFamily = Fraunces, color = ColorBone) },
+            text = { Text(message, fontFamily = Inter, color = ColorSlate) },
+            containerColor = ColorSurface,
+            titleContentColor = ColorBone,
+            textContentColor = ColorSlate
         )
     }
 }
@@ -114,36 +136,45 @@ fun AccountsScreen(viewModel: AccountsViewModel = hiltViewModel()) {
 @Composable
 private fun EmptyAccounts(modifier: Modifier, onCreate: () -> Unit) {
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-        Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.size(96.dp)) {
+        Surface(shape = RoundedCornerShape(28.dp), color = ColorSurface, modifier = Modifier.size(96.dp)) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(Icons.Filled.AccountBalance, contentDescription = null, modifier = Modifier.size(44.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                Icon(Icons.Filled.AccountBalance, contentDescription = null, modifier = Modifier.size(44.dp), tint = ColorBrass)
             }
         }
         Spacer(Modifier.height(24.dp))
-        Text("Agrega tu primera cuenta", style = MaterialTheme.typography.headlineSmall)
+        Text("Agrega tu primera cuenta", fontFamily = Fraunces, fontSize = 24.sp, color = ColorBone)
         Spacer(Modifier.height(8.dp))
-        Text("Así podrás registrar movimientos y conocer tu balance real.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 36.dp))
+        Text("Así podrás registrar movimientos y conocer tu balance real.", fontFamily = Inter, fontSize = 15.sp, color = ColorSlate, modifier = Modifier.padding(horizontal = 36.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         Spacer(Modifier.height(24.dp))
-        Button(onClick = onCreate) { Text("Crear cuenta") }
+        Button(
+            onClick = onCreate,
+            colors = ButtonDefaults.buttonColors(containerColor = ColorBrass, contentColor = ColorOnBrass)
+        ) { 
+            Text("Crear cuenta", fontFamily = Inter, fontWeight = FontWeight.Bold) 
+        }
     }
 }
 
 @Composable
-private fun AccountCard(account: Account) {
-    Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
+private fun AccountCard(account: Account, onDelete: () -> Unit) {
+    Surface(shape = RoundedCornerShape(20.dp), color = ColorSurface) {
         Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Surface(shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.secondaryContainer, modifier = Modifier.size(48.dp)) {
+            Surface(shape = RoundedCornerShape(14.dp), color = ColorBrass.copy(alpha = 0.15f), modifier = Modifier.size(48.dp)) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(account.type.icon(), contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                    Icon(account.type.icon(), contentDescription = null, tint = ColorBrass)
                 }
             }
             Spacer(Modifier.size(14.dp))
             Column(Modifier.weight(1f)) {
-                Text(account.name, style = MaterialTheme.typography.titleLarge)
+                Text(account.name, fontFamily = Inter, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = ColorBone)
                 Spacer(Modifier.height(2.dp))
-                Text(account.type.label(), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(account.type.label(), fontFamily = Inter, fontSize = 13.sp, color = ColorSlate)
             }
-            Text(account.currency, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+            Text(account.currency, fontFamily = Inter, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = ColorBrass)
+            Spacer(Modifier.width(8.dp))
+            androidx.compose.material3.IconButton(onClick = onDelete) {
+                Icon(Icons.Filled.Delete, contentDescription = "Eliminar", tint = ColorBrass)
+            }
         }
     }
 }
@@ -154,32 +185,66 @@ private fun CreateAccountDialog(isSaving: Boolean, onDismiss: () -> Unit, onCrea
     var type by rememberSaveable { mutableStateOf(AccountType.bank) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Nueva cuenta") },
+        containerColor = ColorSurface,
+        titleContentColor = ColorBone,
+        textContentColor = ColorSlate,
+        shape = RoundedCornerShape(24.dp),
+        title = { Text("Nueva cuenta", fontFamily = Fraunces) },
         text = {
             Column {
-                Text("Añade los lugares donde guardas o manejas tu dinero.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Añade los lugares donde guardas o manejas tu dinero.", fontFamily = Inter)
                 Spacer(Modifier.height(20.dp))
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nombre de la cuenta") }, singleLine = true, enabled = !isSaving, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(
+                    value = name, 
+                    onValueChange = { name = it }, 
+                    label = { Text("Nombre de la cuenta", fontFamily = Inter) }, 
+                    singleLine = true, 
+                    enabled = !isSaving, 
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = ColorBrass,
+                        focusedLabelColor = ColorBrass,
+                        unfocusedBorderColor = ColorHair,
+                        unfocusedLabelColor = ColorSlate,
+                        focusedTextColor = ColorBone,
+                        unfocusedTextColor = ColorBone,
+                        cursorColor = ColorBrass
+                    )
+                )
                 Spacer(Modifier.height(20.dp))
-                Text("Tipo de cuenta", style = MaterialTheme.typography.labelLarge)
+                Text("Tipo de cuenta", fontFamily = Inter, fontWeight = FontWeight.SemiBold, color = ColorBone)
                 Spacer(Modifier.height(6.dp))
                 AccountType.entries.forEach { option ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        RadioButton(selected = type == option, onClick = { type = option }, enabled = !isSaving)
-                        Icon(option.icon(), contentDescription = null, modifier = Modifier.padding(start = 4.dp))
-                        Text(option.label(), modifier = Modifier.padding(start = 12.dp))
+                        RadioButton(
+                            selected = type == option, 
+                            onClick = { type = option }, 
+                            enabled = !isSaving,
+                            colors = RadioButtonDefaults.colors(selectedColor = ColorBrass, unselectedColor = ColorSlate)
+                        )
+                        Icon(option.icon(), contentDescription = null, tint = if (type == option) ColorBrass else ColorSlate, modifier = Modifier.padding(start = 4.dp))
+                        Text(option.label(), fontFamily = Inter, color = if (type == option) ColorBone else ColorSlate, modifier = Modifier.padding(start = 12.dp))
                     }
                 }
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss, enabled = !isSaving) { Text("Cancelar") } },
+        dismissButton = { 
+            TextButton(onClick = onDismiss, enabled = !isSaving) { 
+                Text("Cancelar", fontFamily = Inter, color = ColorSlate) 
+            } 
+        },
         confirmButton = {
-            Button(onClick = { onCreate(name, type) }, enabled = !isSaving) {
-                if (isSaving) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                else Text("Guardar")
+            Button(
+                onClick = { onCreate(name, type) }, 
+                enabled = !isSaving,
+                colors = ButtonDefaults.buttonColors(containerColor = ColorBrass, contentColor = ColorOnBrass),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                if (isSaving) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = ColorOnBrass)
+                else Text("Guardar", fontFamily = Inter, fontWeight = FontWeight.Bold)
             }
         }
     )

@@ -1,5 +1,6 @@
 package co.privado.finly.ui.screens.allowedapps
 
+import co.privado.finly.ui.state.GlobalMessageNotifier
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.provider.Settings
@@ -22,7 +23,8 @@ data class AllowedAppsUiState(val apps: List<InstalledApp> = emptyList(), val al
 @HiltViewModel
 class AllowedAppsViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val whitelistRepository: WhitelistRepository
+    private val whitelistRepository: WhitelistRepository,
+    private val globalMessageNotifier: GlobalMessageNotifier
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(AllowedAppsUiState())
     val uiState: StateFlow<AllowedAppsUiState> = _uiState.asStateFlow()
@@ -39,7 +41,10 @@ class AllowedAppsViewModel @Inject constructor(
     fun toggle(app: InstalledApp, enabled: Boolean) = viewModelScope.launch {
         _uiState.update { it.copy(isUpdating = it.isUpdating + app.packageName, error = null) }
         whitelistRepository.setAllowed(app.packageName, app.label, enabled)
-            .onSuccess { _uiState.update { state -> state.copy(allowedPackages = if (enabled) state.allowedPackages + app.packageName else state.allowedPackages - app.packageName, isUpdating = state.isUpdating - app.packageName) } }
+            .onSuccess { 
+                _uiState.update { state -> state.copy(allowedPackages = if (enabled) state.allowedPackages + app.packageName else state.allowedPackages - app.packageName, isUpdating = state.isUpdating - app.packageName) }
+                globalMessageNotifier.showMessage(if (enabled) "App permitida" else "App ignorada")
+            }
             .onFailure { _uiState.update { state -> state.copy(isUpdating = state.isUpdating - app.packageName, error = "No pudimos guardar el cambio de ${app.label}.") } }
     }
 
@@ -47,10 +52,15 @@ class AllowedAppsViewModel @Inject constructor(
     fun dismissError() = _uiState.update { it.copy(error = null) }
 
     private fun listenerIsEnabled() = NotificationManagerCompat.getEnabledListenerPackages(context).contains(context.packageName)
-    private fun installedApps(): List<InstalledApp> = context.packageManager.getInstalledApplications(0)
-        .asSequence()
-        .filter { app -> context.packageManager.getLaunchIntentForPackage(app.packageName) != null && app.packageName != context.packageName }
-        .map { app -> InstalledApp(app.packageName, context.packageManager.getApplicationLabel(app).toString(), app.loadIcon(context.packageManager)) }
-        .sortedBy { it.label.lowercase() }
-        .toList()
+    private suspend fun installedApps(): List<InstalledApp> = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+        context.packageManager.getInstalledApplications(0)
+            .asSequence()
+            .filter { app -> 
+                val isUserApp = (app.flags and ApplicationInfo.FLAG_SYSTEM) == 0 || (app.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
+                isUserApp && context.packageManager.getLaunchIntentForPackage(app.packageName) != null && app.packageName != context.packageName 
+            }
+            .map { app -> InstalledApp(app.packageName, context.packageManager.getApplicationLabel(app).toString(), app.loadIcon(context.packageManager)) }
+            .sortedBy { it.label.lowercase() }
+            .toList()
+    }
 }

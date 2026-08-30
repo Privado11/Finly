@@ -1,21 +1,19 @@
 package co.privado.finly.data.repository
 
+import co.privado.finly.data.local.SessionDataStore
 import co.privado.finly.domain.model.Account
 import co.privado.finly.domain.model.AccountType
 import co.privado.finly.domain.repository.AccountRepository
 import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import javax.inject.Inject
 import javax.inject.Singleton
-import co.privado.finly.data.local.SessionDataStore
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 
 @Serializable
 private data class AccountPayload(
@@ -45,7 +43,7 @@ class AccountRepositoryImpl @Inject constructor(
     }
 
     override suspend fun addAccount(name: String, type: AccountType, currency: String): Result<Account> = runCatching {
-        val userId = sessionStore.getUserId() ?: throw IllegalStateException("Tu sesión expiró. Inicia sesión nuevamente.")
+        val userId = sessionStore.getUserId() ?: throw java.lang.IllegalStateException("Tu sesión expiró. Inicia sesión nuevamente.")
         val acc = supabase.from("accounts").insert(
             AccountPayload(userId = userId, name = name.trim(), type = type, currency = currency)
         ) { select() }.decodeSingle<Account>()
@@ -73,5 +71,9 @@ class AccountRepositoryImpl @Inject constructor(
         supabase.from("accounts").delete { filter { eq("id", id) } }
         _state.value = null // Invalidate cache
         Unit
+    }
+
+    override fun clearCache() {
+        _state.value = null
     }
 }

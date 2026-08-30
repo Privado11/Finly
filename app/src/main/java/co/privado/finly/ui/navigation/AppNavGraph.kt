@@ -1,4 +1,6 @@
 package co.privado.finly.ui.navigation
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -106,18 +108,27 @@ fun AppNavGraph(
             )
         }
         composable(Routes.BiometricLock) {
+            val userName by authCheckViewModel.userName.collectAsState()
+
             BiometricLockScreen(
+                userName = userName,
                 onUnlocked = {
                     authCheckViewModel.onBiometricSuccess()
                     nav.navigate(Routes.Main) { popUpTo(Routes.BiometricLock) { inclusive = true } }
                 },
                 onUsePassword = {
+                    authCheckViewModel.onLogout()
                     nav.navigate(Routes.Login) { popUpTo(Routes.BiometricLock) { inclusive = true } }
                 }
             )
         }
         composable(Routes.Main) {
-            MainScreen()
+            MainScreen(
+                onLogout = {
+                    authCheckViewModel.onLogout()
+                    nav.navigate(Routes.Login) { popUpTo(0) { inclusive = true } }
+                }
+            )
         }
     }
 }

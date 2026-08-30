@@ -35,7 +35,7 @@ object SupabaseModule {
             supabaseUrl = BuildConfig.SUPABASE_URL,
             supabaseKey = BuildConfig.SUPABASE_ANON_KEY
         ) {
-            install(Auth)
+            install(Auth) { alwaysAutoRefresh = true }
             install(Postgrest)
             install(Functions)
             install(Realtime)
@@ -66,4 +66,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindWhitelistRepository(impl: co.privado.finly.data.repository.WhitelistRepositoryImpl): co.privado.finly.domain.repository.WhitelistRepository
+    
+    @Binds
+    @Singleton
+    abstract fun bindReviewQueueRepository(impl: co.privado.finly.data.repository.ReviewQueueRepositoryImpl): co.privado.finly.domain.repository.ReviewQueueRepository
 }
