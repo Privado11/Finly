@@ -58,36 +58,60 @@ class LoginViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, error = null) }
             try {
                 if (BuildConfig.GOOGLE_WEB_CLIENT_ID.isBlank()) {
-                    _uiState.update { it.copy(error = "Google Sign-In no configurado") }
+                    _uiState.update { it.copy(error = "Google Sign-In no configurado (falta Web Client ID)") }
                     return@launch
                 }
-                val credentialManager = CredentialManager.create(activity)
-                val googleIdOption = GetGoogleIdOption.Builder()
-                    .setFilterByAuthorizedAccounts(false)
-                    .setServerClientId(BuildConfig.GOOGLE_WEB_CLIENT_ID)
-                    .build()
-                val request = GetCredentialRequest.Builder()
-                    .addCredentialOption(googleIdOption)
-                    .build()
-                val result = credentialManager.getCredential(activity, request)
-                val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(result.credential.data)
-                val idToken = googleIdTokenCredential.idToken
+
+                val idToken = obtenerGoogleIdToken(activity)
+                if (idToken == null) {
+                    // Usuario canceló — no mostrar error
+                    return@launch
+                }
+
                 val res = authRepository.signInWithGoogle(idToken)
                 if (res.isSuccess) onSuccess()
                 else _uiState.update { it.copy(error = mapError(res.exceptionOrNull())) }
-            } catch (e: GetCredentialException) {
-                // Usuario cancela o no hay credencial disponible — no spamear error
-                val msg = e.message ?: ""
-                if (msg.contains("canceled", true) || msg.contains("cancel", true)) {
-                    // silencio
-                } else {
-                    _uiState.update { it.copy(error = "No se pudo obtener credencial de Google: ${e.message}") }
-                }
+
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = mapError(e)) }
+                val msg = e.message ?: ""
+                when {
+                    // Cancelación explícita del usuario — silencio
+                    msg.contains("cancel", ignoreCase = true) -> { /* no-op */ }
+                    // Error de configuración (SHA-1 o Client ID)
+                    msg.contains("10:", ignoreCase = true) ||
+                    msg.contains("ApiException", ignoreCase = true) ->
+                        _uiState.update { it.copy(error = "Error de configuración de Google (código 10). Verifica el SHA-1 en Google Cloud Console.") }
+                    else -> _uiState.update { it.copy(error = mapError(e)) }
+                }
             } finally {
                 _uiState.update { it.copy(isLoading = false) }
             }
+        }
+    }
+
+    /**
+     * Muestra el selector de cuentas Google y retorna el ID token.
+     * Retorna null si el usuario cancela. Lanza excepción en error real.
+     *
+     * Va directo al selector sin intentar sign-in silencioso — el silent flow
+     * con setAutoSelectEnabled(true) puede colgar indefinidamente esperando GMS.
+     */
+    private suspend fun obtenerGoogleIdToken(activity: FragmentActivity): String? {
+        val credentialManager = CredentialManager.create(activity)
+        val option = GetGoogleIdOption.Builder()
+            .setFilterByAuthorizedAccounts(false) // siempre muestra el selector
+            .setServerClientId(BuildConfig.GOOGLE_WEB_CLIENT_ID)
+            .setAutoSelectEnabled(false)           // nunca silencioso
+            .build()
+        val request = GetCredentialRequest.Builder()
+            .addCredentialOption(option)
+            .build()
+        return try {
+            val result = credentialManager.getCredential(activity, request)
+            GoogleIdTokenCredential.createFrom(result.credential.data).idToken
+        } catch (e: GetCredentialException) {
+            if (e.message.orEmpty().contains("cancel", ignoreCase = true)) null
+            else throw e
         }
     }
 

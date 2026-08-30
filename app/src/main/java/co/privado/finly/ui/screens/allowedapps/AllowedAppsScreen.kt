@@ -36,7 +36,6 @@ fun AllowedAppsScreen(viewModel: AllowedAppsViewModel = hiltViewModel()) {
     }
     val apps = state.apps.filter { it.label.contains(query, true) || it.packageName.contains(query, true) }
     Scaffold(
-        modifier = Modifier.systemBarsPadding(),
         topBar = { TopAppBar(title = { Column { Text("Apps monitoreadas", style = MaterialTheme.typography.titleLarge); Text("Tú decides qué notificaciones se procesan", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) } }) }
     ) { padding ->
         if (state.isLoading) Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { CircularProgressIndicator() }

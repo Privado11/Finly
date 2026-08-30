@@ -41,7 +41,6 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun signInWithGoogle(idToken: String): Result<Unit> = runCatching {
-        // Flujo nativo con Credential Manager: se usa el provider IDToken, no Google (ese es para OAuth con navegador).
         supabase.auth.signInWith(IDToken) {
             this.idToken = idToken
             this.provider = Google
@@ -58,11 +57,42 @@ class AuthRepositoryImpl @Inject constructor(
         return supabase.auth.currentUserOrNull()?.id
     }
 
+    /**
+     * Valida la sesión guardada localmente sin hacer una llamada de red innecesaria.
+     *
+     * Flujo:
+     * 1. Sin token local → false (login requerido).
+     * 2. Token local no expirado → importar en memoria y retornar true (SIN llamada de red).
+     * 3. Token expirado pero hay refresh token → intentar refresh con Supabase (requiere red).
+     *    - Éxito → guardar nuevos tokens → true.
+     *    - Fallo → false (login requerido).
+     *
+     * NUNCA llama a currentUserOrNull() solo para validar — eso haría una llamada de red
+     * en cada startup y mandaría al usuario a login si no hay internet o Supabase tarda.
+     */
     override suspend fun isSessionValid(): Boolean {
-        val session = supabase.auth.currentSessionOrNull() ?: return false
-        return try {
-            supabase.auth.currentUserOrNull() != null
-        } catch (_: Exception) { false }
+        val accessToken = sessionStore.getAccessToken() ?: return false
+
+        // Caso 1: token local vigente — confiar en expires_at guardado, sin red
+        if (sessionStore.isSessionValid()) {
+            runCatching { supabase.auth.importAuthToken(accessToken) }
+            return true
+        }
+
+        // Caso 2: token expirado — intentar renovar con refresh token (requiere red)
+        val refreshToken = sessionStore.refreshTokenFlow.first()
+        if (refreshToken != null) {
+            return try {
+                supabase.auth.importAuthToken(accessToken)
+                supabase.auth.refreshCurrentSession()
+                guardarSesionActual()
+                true
+            } catch (e: Exception) {
+                false
+            }
+        }
+
+        return false
     }
 
     @OptIn(ExperimentalTime::class)

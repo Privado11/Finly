@@ -22,6 +22,7 @@ credentials = "1.6.0"
 credentialsPlayServices = "1.6.0"
 googleId = "1.2.0"
 coil = "2.7.0"
+googleFonts = "1.8.2"
 junit = "4.13.2"
 junitVersion = "1.1.5"
 espressoCore = "3.5.1"
@@ -90,6 +91,9 @@ googleid = { group = "com.google.android.libraries.identity.googleid", name = "g
 
 # Coil
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
+
+# Google Fonts para Compose (Fraunces, Inter, IBM Plex Mono)
+androidx-compose-ui-text-google-fonts = { group = "androidx.compose.ui", name = "ui-text-google-fonts", version.ref = "googleFonts" }
 
 # Ktor (transitive but explicit for OkHttp engine)
 ktor-client-okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version.ref = "ktor" }

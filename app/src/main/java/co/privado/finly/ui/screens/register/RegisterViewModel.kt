@@ -68,24 +68,42 @@ class RegisterViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, error = null) }
             try {
                 if (BuildConfig.GOOGLE_WEB_CLIENT_ID.isBlank()) {
-                    _uiState.update { it.copy(error = "Google Sign-In no configurado") }; return@launch
+                    _uiState.update { it.copy(error = "Google Sign-In no configurado (falta Web Client ID)") }
+                    return@launch
                 }
-                val credentialManager = CredentialManager.create(activity)
-                val option = GetGoogleIdOption.Builder()
-                    .setFilterByAuthorizedAccounts(false)
-                    .setServerClientId(BuildConfig.GOOGLE_WEB_CLIENT_ID)
-                    .build()
-                val request = GetCredentialRequest.Builder().addCredentialOption(option).build()
-                val result = credentialManager.getCredential(activity, request)
-                val cred = GoogleIdTokenCredential.createFrom(result.credential.data)
-                val res = authRepository.signInWithGoogle(cred.idToken)
-                if (res.isSuccess) onSuccess() else _uiState.update { it.copy(error = mapError(res.exceptionOrNull())) }
-            } catch (e: GetCredentialException) {
-                if (!e.message.orEmpty().contains("canceled", true))
-                    _uiState.update { it.copy(error = "No se pudo obtener credencial de Google") }
+                val idToken = obtenerGoogleIdToken(activity) ?: return@launch // cancelado
+                val res = authRepository.signInWithGoogle(idToken)
+                if (res.isSuccess) onSuccess()
+                else _uiState.update { it.copy(error = mapError(res.exceptionOrNull())) }
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = mapError(e)) }
-            } finally { _uiState.update { it.copy(isLoading = false) } }
+                val msg = e.message ?: ""
+                when {
+                    msg.contains("cancel", ignoreCase = true) -> { /* silencio */ }
+                    msg.contains("10:", ignoreCase = true) || msg.contains("ApiException", ignoreCase = true) ->
+                        _uiState.update { it.copy(error = "Error de configuración de Google (código 10). Verifica el SHA-1 en Google Cloud Console.") }
+                    else -> _uiState.update { it.copy(error = mapError(e)) }
+                }
+            } finally {
+                _uiState.update { it.copy(isLoading = false) }
+            }
+        }
+    }
+
+    private suspend fun obtenerGoogleIdToken(activity: FragmentActivity): String? {
+        val credentialManager = CredentialManager.create(activity)
+        val option = GetGoogleIdOption.Builder()
+            .setFilterByAuthorizedAccounts(false) // siempre muestra el selector
+            .setServerClientId(BuildConfig.GOOGLE_WEB_CLIENT_ID)
+            .setAutoSelectEnabled(false)           // nunca silencioso
+            .build()
+        return try {
+            val result = credentialManager.getCredential(
+                activity,
+                GetCredentialRequest.Builder().addCredentialOption(option).build()
+            )
+            GoogleIdTokenCredential.createFrom(result.credential.data).idToken
+        } catch (e: GetCredentialException) {
+            if (e.message.orEmpty().contains("cancel", ignoreCase = true)) null else throw e
         }
     }
 

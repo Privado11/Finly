@@ -12,6 +12,10 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import javax.inject.Inject
 import javax.inject.Singleton
+import co.privado.finly.data.local.SessionDataStore
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 @Serializable
 private data class AccountPayload(
@@ -23,29 +27,34 @@ private data class AccountPayload(
 
 @Singleton
 class AccountRepositoryImpl @Inject constructor(
-    private val supabase: SupabaseClient
+    private val supabase: SupabaseClient,
+    private val sessionStore: SessionDataStore
 ) : AccountRepository {
 
-    override fun observeAccounts(): Flow<List<Account>> = flow {
-        emit(getAccounts().getOrThrow())
-    }
+    private val _state = MutableStateFlow<List<Account>?>(null)
 
-    override suspend fun getAccounts(): Result<List<Account>> = runCatching {
-        supabase.from("accounts").select().decodeList<Account>()
-            .filter { it.active }
-            .sortedBy { it.name.lowercase() }
+    override fun observeAccounts(): Flow<List<Account>> = _state.asStateFlow().map { it ?: emptyList() }
+
+    override suspend fun getAccounts(forceRefresh: Boolean): Result<List<Account>> = runCatching {
+        if (!forceRefresh && _state.value != null) {
+            return@runCatching _state.value!!
+        }
+        val accounts = supabase.from("accounts").select().decodeList<Account>().sortedBy { it.name.lowercase() }
+        _state.value = accounts
+        accounts
     }
 
     override suspend fun addAccount(name: String, type: AccountType, currency: String): Result<Account> = runCatching {
-        val userId = supabase.auth.currentUserOrNull()?.id
-            ?: throw IllegalStateException("Tu sesión expiró. Inicia sesión nuevamente.")
-        supabase.from("accounts").insert(
+        val userId = sessionStore.getUserId() ?: throw IllegalStateException("Tu sesión expiró. Inicia sesión nuevamente.")
+        val acc = supabase.from("accounts").insert(
             AccountPayload(userId = userId, name = name.trim(), type = type, currency = currency)
         ) { select() }.decodeSingle<Account>()
+        _state.value = null // Invalidate cache
+        acc
     }
 
     override suspend fun updateAccount(account: Account): Result<Account> = runCatching {
-        supabase.from("accounts").update(
+        val acc = supabase.from("accounts").update(
             AccountPayload(
                 userId = account.userId,
                 name = account.name.trim(),
@@ -56,10 +65,13 @@ class AccountRepositoryImpl @Inject constructor(
             filter { eq("id", account.id) }
             select()
         }.decodeSingle<Account>()
+        _state.value = null // Invalidate cache
+        acc
     }
 
     override suspend fun deleteAccount(id: String): Result<Unit> = runCatching {
         supabase.from("accounts").delete { filter { eq("id", id) } }
+        _state.value = null // Invalidate cache
         Unit
     }
 }

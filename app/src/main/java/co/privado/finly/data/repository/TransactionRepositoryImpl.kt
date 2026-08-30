@@ -11,6 +11,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import javax.inject.Inject
 import javax.inject.Singleton
+import co.privado.finly.data.local.SessionDataStore
 
 @Serializable
 private data class TransactionPayload(
@@ -28,13 +29,19 @@ private data class TransactionPayload(
 )
 
 @Singleton
-class TransactionRepositoryImpl @Inject constructor(private val supabase: SupabaseClient) : TransactionRepository {
+class TransactionRepositoryImpl @Inject constructor(
+    private val supabase: SupabaseClient,
+    private val sessionStore: SessionDataStore
+) : TransactionRepository {
     override fun observeTransactions(): Flow<List<Transaction>> = flow { emit(getTransactions().getOrThrow()) }
     override suspend fun getTransactions(): Result<List<Transaction>> = runCatching {
         supabase.from("transactions").select().decodeList<Transaction>().sortedByDescending { it.date }
     }
+    override suspend fun getTransactionById(id: String): Result<Transaction> = runCatching {
+        supabase.from("transactions").select { filter { eq("id", id) } }.decodeSingle<Transaction>()
+    }
     override suspend fun addTransaction(transaction: Transaction): Result<Transaction> = runCatching {
-        val userId = supabase.auth.currentUserOrNull()?.id ?: throw IllegalStateException("Tu sesión expiró. Inicia sesión nuevamente.")
+        val userId = sessionStore.getUserId() ?: throw IllegalStateException("Tu sesión expiró. Inicia sesión nuevamente.")
         val payload = TransactionPayload(userId, transaction.sourceAccountId, transaction.destinationAccountId, transaction.categoryId, transaction.type, transaction.amount, transaction.currency, transaction.merchant, transaction.description, transaction.source, transaction.date)
         supabase.from("transactions").insert(payload) { select() }.decodeSingle<Transaction>()
     }

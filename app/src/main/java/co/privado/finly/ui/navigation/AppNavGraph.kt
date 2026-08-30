@@ -1,25 +1,38 @@
 package co.privado.finly.ui.navigation
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import co.privado.finly.ui.screens.allowedapps.AllowedAppsScreen
-import co.privado.finly.ui.screens.accounts.AccountsScreen
-import co.privado.finly.ui.screens.categories.CategoriesScreen
-import co.privado.finly.ui.screens.transactions.TransactionsScreen
+import co.privado.finly.R
 import co.privado.finly.ui.screens.biometric.BiometricLockScreen
-import co.privado.finly.ui.screens.home.HomeScreen
 import co.privado.finly.ui.screens.login.LoginScreen
 import co.privado.finly.ui.screens.register.RegisterScreen
+import co.privado.finly.ui.theme.ColorInk
+import co.privado.finly.ui.theme.ColorSlate
+import co.privado.finly.ui.theme.IbmPlexMono
 
 @Composable
 fun AppNavGraph(
@@ -32,24 +45,54 @@ fun AppNavGraph(
     val start = when (authState) {
         is AuthState.Loading -> null // muestra splash
         is AuthState.NeedsBiometric -> Routes.BiometricLock
-        is AuthState.Authenticated -> Routes.Home
+        is AuthState.Authenticated -> Routes.Main
         is AuthState.Unauthenticated -> Routes.Login
     }
 
     if (start == null) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
+        // Splash — ícono oficial de la app mientras se verifica la sesión
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(ColorInk),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                androidx.compose.foundation.Image(
+                    painter = painterResource(R.mipmap.ic_launcher_foreground),
+                    contentDescription = "Finly",
+                    modifier = Modifier
+                        .size(96.dp)
+                        .clip(RoundedCornerShape(24.dp))
+                )
+                Spacer(Modifier.height(18.dp))
+                Text(
+                    text = "FINLY",
+                    style = TextStyle(
+                        fontFamily = IbmPlexMono,
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 12.sp,
+                        letterSpacing = 0.14.sp,
+                        color = ColorSlate
+                    )
+                )
+            }
         }
         return
     }
 
-    NavHost(navController = nav, startDestination = start) {
+    NavHost(
+        navController = nav,
+        startDestination = start,
+        modifier = Modifier.fillMaxSize().background(ColorInk)
+    ) {
         composable(Routes.Login) {
             LoginScreen(
                 onLoginSuccess = {
-                    // Si después de login hay biometría disponible, la próxima apertura pedirá huella;
-                    // por ahora va directo a Home
-                    nav.navigate(Routes.Home) { popUpTo(Routes.Login) { inclusive = true } }
+                    nav.navigate(Routes.Main) { popUpTo(Routes.Login) { inclusive = true } }
                 },
                 onNavigateToRegister = { nav.navigate(Routes.Register) }
             )
@@ -57,7 +100,7 @@ fun AppNavGraph(
         composable(Routes.Register) {
             RegisterScreen(
                 onRegisterSuccess = {
-                    nav.navigate(Routes.Home) { popUpTo(Routes.Login) { inclusive = true } }
+                    nav.navigate(Routes.Main) { popUpTo(Routes.Login) { inclusive = true } }
                 },
                 onNavigateToLogin = { nav.popBackStack() }
             )
@@ -66,19 +109,15 @@ fun AppNavGraph(
             BiometricLockScreen(
                 onUnlocked = {
                     authCheckViewModel.onBiometricSuccess()
-                    nav.navigate(Routes.Home) { popUpTo(Routes.BiometricLock) { inclusive = true } }
+                    nav.navigate(Routes.Main) { popUpTo(Routes.BiometricLock) { inclusive = true } }
                 },
                 onUsePassword = {
-                    // Fallback §3.1/§3.5: si falla huella, opción "usar contraseña"
                     nav.navigate(Routes.Login) { popUpTo(Routes.BiometricLock) { inclusive = true } }
                 }
             )
         }
-        composable(Routes.Home) { HomeScreen(nav) }
-        composable(Routes.Accounts) { AccountsScreen() }
-        composable(Routes.Categories) { CategoriesScreen() }
-        composable(Routes.Transactions) { TransactionsScreen(onSaved = { nav.popBackStack() }) }
-        composable(Routes.AllowedApps) { AllowedAppsScreen() }
-        // TODO: ReviewQueue (roadmap §9)
+        composable(Routes.Main) {
+            MainScreen()
+        }
     }
 }

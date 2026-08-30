@@ -115,6 +115,9 @@ dependencies {
     // Coil (íconos de apps, imágenes)
     implementation(libs.coil.compose)
 
+    // Google Fonts para Compose (Fraunces, Inter, IBM Plex Mono — ver Type.kt)
+    implementation(libs.androidx.compose.ui.text.google.fonts)
+
     // Ktor OkHttp engine (usado por Supabase-Kotlin)
     implementation(libs.ktor.client.okhttp)
 

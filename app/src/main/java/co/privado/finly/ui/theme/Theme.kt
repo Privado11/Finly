@@ -5,50 +5,84 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
+
+// ─────────────────────────────────────────────
+//  Finly Theme — paleta del design system
+//
+//  La app es dark-first (fondo #05070A / Ink, surfaces en #1A2028).
+//  El lightColorScheme existe como respaldo si el sistema fuerza modo claro,
+//  pero la experiencia principal está en oscuro.
+// ─────────────────────────────────────────────
 
 private val DarkColorScheme = darkColorScheme(
-    primary = FinlyGreenDark,
-    onPrimary = Color(0xFF003827),
-    primaryContainer = FinlyGreenContainerDark,
-    onPrimaryContainer = Color(0xFF8CF8C7),
-    secondary = Color(0xFFB5CCC0),
-    onSecondary = Color(0xFF20352C),
-    secondaryContainer = Color(0xFF364B40),
-    onSecondaryContainer = Color(0xFFD1E8DC),
-    background = CanvasDark,
-    onBackground = InkDark,
-    surface = CanvasDark,
-    onSurface = InkDark,
-    surfaceVariant = SurfaceVariantDark,
-    onSurfaceVariant = Color(0xFFC1CAC3),
-    outline = OutlineDark,
-    error = FinlyErrorDark,
-    onError = Color(0xFF690005),
-    errorContainer = Color(0xFF93000A),
-    onErrorContainer = Color(0xFFFFDAD6)
+    // ── Primario: Latón ──────────────────────────────────────────────────────
+    primary = ColorBrass,
+    onPrimary = ColorOnBrass,
+    primaryContainer = ColorBrassSoft,
+    onPrimaryContainer = ColorBone,
+
+    // ── Secundario: Slate (acciones neutras, chips, labels) ──────────────────
+    secondary = ColorSlate,
+    onSecondary = ColorInk,
+    secondaryContainer = ColorSurfaceHi,
+    onSecondaryContainer = ColorBone,
+
+    // ── Terciario: Musgo (ingresos) ──────────────────────────────────────────
+    tertiary = ColorMoss,
+    onTertiary = ColorInk,
+    tertiaryContainer = ColorSurface,
+    onTertiaryContainer = ColorMoss,
+
+    // ── Fondos y superficies ─────────────────────────────────────────────────
+    background = ColorInk,
+    onBackground = ColorBone,
+    surface = ColorSurface,
+    onSurface = ColorBone,
+    surfaceVariant = ColorSurfaceHi,
+    onSurfaceVariant = ColorSlate,
+
+    // ── Contornos ────────────────────────────────────────────────────────────
+    outline = ColorHair,
+    outlineVariant = ColorSurfaceHi,
+
+    // ── Error ────────────────────────────────────────────────────────────────
+    error = ColorError,
+    onError = ColorOnError,
+    errorContainer = ColorSurface,
+    onErrorContainer = ColorError,
 )
 
+// Modo claro — misma paleta pero invertida para legibilidad en luz
 private val LightColorScheme = lightColorScheme(
-    primary = FinlyGreen,
-    onPrimary = Color.White,
-    primaryContainer = FinlyGreenContainer,
-    onPrimaryContainer = Color(0xFF002114),
-    secondary = Color(0xFF4C6358),
-    onSecondary = Color.White,
-    secondaryContainer = Color(0xFFCFE9DA),
-    onSecondaryContainer = Color(0xFF092016),
-    background = Canvas,
-    onBackground = Ink,
-    surface = Canvas,
-    onSurface = Ink,
-    surfaceVariant = SurfaceVariant,
-    onSurfaceVariant = Color(0xFF404943),
-    outline = Outline,
-    error = FinlyError,
-    onError = Color.White,
-    errorContainer = Color(0xFFFFDAD6),
-    onErrorContainer = Color(0xFF410002)
+    primary = ColorBrassSoft,
+    onPrimary = ColorBone,
+    primaryContainer = ColorBrass,
+    onPrimaryContainer = ColorOnBrass,
+
+    secondary = ColorSlate,
+    onSecondary = ColorBone,
+    secondaryContainer = ColorSurface,
+    onSecondaryContainer = ColorBone,
+
+    tertiary = ColorMoss,
+    onTertiary = ColorBone,
+    tertiaryContainer = ColorSurface,
+    onTertiaryContainer = ColorMoss,
+
+    background = ColorBone,
+    onBackground = ColorInk,
+    surface = ColorBone,
+    onSurface = ColorInk,
+    surfaceVariant = ColorSurface,
+    onSurfaceVariant = ColorSlate,
+
+    outline = ColorHair,
+    outlineVariant = ColorSurfaceHi,
+
+    error = ColorClay,
+    onError = ColorBone,
+    errorContainer = ColorSurface,
+    onErrorContainer = ColorClay,
 )
 
 @Composable

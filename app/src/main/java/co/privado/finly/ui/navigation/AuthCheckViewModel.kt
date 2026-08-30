@@ -29,16 +29,17 @@ class AuthCheckViewModel @Inject constructor(
 
     fun refresh() {
         viewModelScope.launch {
-            try {
-                // Valida JWT guardado + sesión de Supabase (refresh implícito si hay refreshToken válido)
-                val hasLocalToken = sessionStore.getAccessToken() != null
-                val supabaseValid = authRepository.isSessionValid()
-                // Si hay token local y Supabase lo reconoce, consideramos sesión válida
-                val valid = hasLocalToken && supabaseValid
-                _state.value = if (valid) AuthState.NeedsBiometric else AuthState.Unauthenticated
+            _state.value = AuthState.Loading
+            val valid = try {
+                // isSessionValid confía en expires_at local; solo hace red si el token expiró (refresh).
+                authRepository.isSessionValid()
             } catch (_: Exception) {
-                _state.value = AuthState.Unauthenticated
+                // Fallback offline: si el token local todavía no expiró según expires_at guardado,
+                // dejamos pasar — la sesión de Supabase se restaurará cuando haya red.
+                // Solo llegamos aquí si isSessionValid lanzó excepción (ej. red caída durante refresh).
+                sessionStore.isSessionValid()
             }
+            _state.value = if (valid) AuthState.NeedsBiometric else AuthState.Unauthenticated
         }
     }
 

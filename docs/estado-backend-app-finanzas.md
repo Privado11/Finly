@@ -140,21 +140,21 @@ Control de uso diario del LLM por usuario, para el rate limiting.
 1. Valida JWT de Supabase Auth (401 si no hay o es inválido)
 2. Valida el body (`package_name`, `text`)
 3. Llama a `register_llm_usage` vía `service_role` — si superó el límite diario (100/día), responde 429
-4. Llama al LLM (hoy configurado para la API de Anthropic) con un prompt en inglés que distingue `income`/`expense`/`transfer`
+4. Llama al LLM (Gemini 2.0 Flash, tier gratuito) con un prompt en inglés y structured output que distingue `income`/`expense`/`transfer`
 5. Valida que la respuesta sea JSON bien formado, con `type`, `amount` y `confidence` válidos
 6. Si `confidence` es `"low"` o el JSON no es válido, responde `ok: false`
 7. Si todo está bien, responde `ok: true` con los datos estructurados — el cliente inserta finalmente en `transactions`
 
 **Variables de entorno:**
 - `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (automáticas)
-- `LLM_API_KEY` — **pendiente de configurar por el usuario** en el dashboard (Project Settings → Edge Functions → Secrets)
+- `GEMINI_API_KEY` — **pendiente de configurar por el usuario** en el dashboard (Project Settings → Edge Functions → Secrets), se obtiene gratis en Google AI Studio (aistudio.google.com/apikey)
 - `LLM_MODEL` — opcional, con valor por defecto en el código
 
 ---
 
 ## 7. Lo que falta por hacer (requiere acción manual del usuario, no de Claude Code)
 
-- [ ] Configurar el secret `LLM_API_KEY` en el dashboard de Supabase
+- [ ] Configurar el secret `GEMINI_API_KEY` en el dashboard de Supabase
 - [ ] Confirmar el proveedor definitivo del LLM
 - [ ] Activar el proveedor **Google** en Authentication → Providers, con las credenciales OAuth de Google Cloud Console
 - [ ] Probar el flujo real de principio a fin desde la app

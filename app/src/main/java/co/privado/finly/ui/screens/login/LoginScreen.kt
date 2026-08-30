@@ -28,7 +28,15 @@ fun LoginScreen(
     onNavigateToRegister: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val activity = LocalContext.current as? FragmentActivity
+    val context = LocalContext.current
+    var activity = context as? FragmentActivity
+    if (activity == null && context is android.content.ContextWrapper) {
+        var base = context.baseContext
+        while (base is android.content.ContextWrapper && base !is FragmentActivity) {
+            base = base.baseContext
+        }
+        activity = base as? FragmentActivity
+    }
 
     AuthScreenLayout {
         FinlyAuthHeader(

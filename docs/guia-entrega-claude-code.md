@@ -31,7 +31,7 @@ Estos NO están en los documentos por seguridad — pásaselos tú directamente 
 
 - Todo el esquema (tablas, columnas, funciones) está en **inglés** — el código Kotlin debería seguir esa misma convención de nombres para consistencia
 - La app es **100% online**: no hay Room ni SQLite como base de datos principal, solo una cola local temporal para notificaciones sin conexión (documentado en la sección 5.1 del frontend)
-- El secret `LLM_API_KEY` en Supabase todavía no está configurado — la Edge Function no va a poder llamar al LLM hasta que lo hagas tú desde el dashboard
+- El secret `GEMINI_API_KEY` en Supabase todavía no está configurado — consíguela gratis en Google AI Studio (aistudio.google.com/apikey) y cárgala en el dashboard, o la Edge Function no podrá llamar al LLM
 - El proveedor **Google** de Supabase Auth todavía no está activado — necesitas crear las credenciales OAuth en Google Cloud Console y cargarlas en el dashboard de Supabase antes de que el botón "Continuar con Google" funcione (detalle completo en la sección 3.3 del documento de frontend)
 - Cualquier cambio de esquema en Supabase, mejor coméntamelo a mí primero (yo tengo acceso directo al proyecto vía MCP) para mantener todo sincronizado con lo que ya está desplegado
 

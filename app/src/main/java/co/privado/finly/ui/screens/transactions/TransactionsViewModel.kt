@@ -47,7 +47,10 @@ class TransactionsViewModel @Inject constructor(
                     _uiState.update { it.copy(isSaving = false) }
                     onSuccess()
                 }
-                .onFailure { _uiState.update { it.copy(isSaving = false, error = "No fue posible guardar el movimiento. Inténtalo de nuevo.") } }
+                .onFailure { error ->
+                    android.util.Log.e("TransactionsViewModel", "Error saving transaction", error)
+                    _uiState.update { it.copy(isSaving = false, error = "No fue posible guardar el movimiento. Inténtalo de nuevo.") } 
+                }
         } }
     }
     fun dismissError() = _uiState.update { it.copy(error = null) }

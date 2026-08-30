@@ -9,6 +9,7 @@ import co.privado.finly.domain.repository.CategoryRepository
 import co.privado.finly.domain.repository.TransactionRepository
 import co.privado.finly.ui.state.TransactionUpdateNotifier
 import dagger.hilt.android.lifecycle.HiltViewModel
+import co.privado.finly.domain.repository.AccountRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,13 +31,15 @@ data class HomeUiState(
     val monthlyExpense: Double = 0.0,
     val recentTransactions: List<Transaction> = emptyList(),
     val expenseSlices: List<ExpenseSlice> = emptyList(),
-    val weeklyExpenses: List<DailyExpense> = emptyList()
+    val weeklyExpenses: List<DailyExpense> = emptyList(),
+    val categoryNames: Map<String, String> = emptyMap()
 )
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val categoryRepository: CategoryRepository,
+    private val accountRepository: AccountRepository,
     private val transactionUpdateNotifier: TransactionUpdateNotifier
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -52,10 +55,22 @@ class HomeViewModel @Inject constructor(
                 _uiState.value = buildState(transactionsCache, categoriesCache)
             }
         }
+        viewModelScope.launch {
+            transactionUpdateNotifier.deleted.collect { transactionId ->
+                transactionsCache = transactionsCache.filter { it.id != transactionId }
+                _uiState.value = buildState(transactionsCache, categoriesCache)
+            }
+        }
     }
 
     fun refresh() = viewModelScope.launch {
         _uiState.update { it.copy(isLoading = true, error = null) }
+        
+        // Lanzamos la carga de cuentas en paralelo para calentar la caché (pre-warm)
+        viewModelScope.launch {
+            accountRepository.getAccounts()
+        }
+        
         val transactions = transactionRepository.getTransactions()
         val categories = categoryRepository.getCategories().getOrDefault(emptyList())
         transactions.onSuccess { list ->
@@ -78,7 +93,7 @@ class HomeViewModel @Inject constructor(
             val date = today.minusDays(offset.toLong())
             DailyExpense(date.dayOfWeek.name.take(1), transactions.filter { it.type == TransactionType.expense && it.localDate() == date }.sumOf { it.amount })
         }
-        return HomeUiState(false, balance = balance, monthlyIncome = income, monthlyExpense = expense, recentTransactions = transactions.sortedByDescending { it.date }.take(5), expenseSlices = slices, weeklyExpenses = week)
+        return HomeUiState(false, balance = balance, monthlyIncome = income, monthlyExpense = expense, recentTransactions = transactions.sortedByDescending { it.date }.take(5), expenseSlices = slices, weeklyExpenses = week, categoryNames = categoryNames.mapValues { it.value.name })
     }
 }
 

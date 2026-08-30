@@ -44,6 +44,13 @@
             </intent-filter>
         </activity>
 
+        <!-- Requerido por Credential Manager (androidx.credentials) para Google Sign-In -->
+        <activity
+            android:name="com.google.android.gms.auth.api.signin.internal.SignInHubActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
         <!-- §5 Frontend — escucha reactiva de notificaciones bancarias (activación manual en Ajustes) -->
         <service
             android:name=".service.BankNotificationListener"

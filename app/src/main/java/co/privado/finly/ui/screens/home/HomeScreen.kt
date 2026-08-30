@@ -1,105 +1,103 @@
 package co.privado.finly.ui.screens.home
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalanceWallet
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
 import co.privado.finly.domain.model.Transaction
 import co.privado.finly.domain.model.TransactionType
-import co.privado.finly.ui.navigation.Routes
+import co.privado.finly.ui.theme.*
 import java.text.NumberFormat
 import java.util.Locale
 
-private val ChartColors = listOf(Color(0xFF006C51), Color(0xFF386A95), Color(0xFF8E4F00), Color(0xFF765285))
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(nav: NavController, viewModel: HomeViewModel = hiltViewModel()) {
+fun HomeScreen(onNavigateToAccounts: () -> Unit = {}, onTransactionClick: (String) -> Unit = {}, viewModel: HomeViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsState()
-    Scaffold(
-        modifier = Modifier.systemBarsPadding(),
-        topBar = { TopAppBar(title = { Column { Text("Finly", style = MaterialTheme.typography.titleLarge); Text("Tu resumen financiero", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) } }, actions = { IconButton(onClick = viewModel::refresh) { Icon(Icons.Filled.Refresh, "Actualizar resumen") } }) },
-        floatingActionButton = { ExtendedFloatingActionButton(onClick = { nav.navigate(Routes.Transactions) }, icon = { Icon(Icons.Filled.Add, null) }, text = { Text("Movimiento") }) }
-    ) { padding ->
-        if (state.isLoading) Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-        else DashboardContent(state, Modifier.fillMaxSize().padding(padding), nav)
-    }
-}
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(ColorInk)
+    ) {
+        if (state.isLoading) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = ColorBrass) }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 20.dp)
+            ) {
+                item {
+                    // Topbar
+                    Column(modifier = Modifier.padding(bottom = 16.dp)) {
+                        Text(
+                            text = "FINLY",
+                            style = TypographyEyebrow,
+                            color = ColorBrass,
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        )
+                        Text(
+                            text = "Tu resumen",
+                            style = TextStyle(
+                                fontFamily = Fraunces,
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 26.sp,
+                                color = ColorBone
+                            )
+                        )
+                    }
+                }
+                
+                state.error?.let { err ->
+                    item {
+                        Text(text = err, color = ColorClay, modifier = Modifier.padding(bottom = 16.dp))
+                    }
+                }
 
-@Composable
-private fun DashboardContent(state: HomeUiState, modifier: Modifier, nav: NavController) {
-    LazyColumn(modifier, contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 96.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        state.error?.let { item { ErrorBanner(it) } }
-        item { BalanceCard(state.balance, state.monthlyIncome, state.monthlyExpense) }
-        item { QuickActions(nav) }
-        if (state.expenseSlices.isNotEmpty()) item { ExpensesCard(state.expenseSlices) }
-        if (state.weeklyExpenses.any { it.amount > 0 }) item { WeeklyChart(state.weeklyExpenses) }
-        item { Text("Últimos movimientos", style = MaterialTheme.typography.titleLarge) }
-        if (state.recentTransactions.isEmpty()) item { EmptyMovement() }
-        else items(state.recentTransactions.size) { TransactionRow(state.recentTransactions[it]) }
-    }
-}
+                item {
+                    BalanceCard(state.balance, state.monthlyIncome, state.monthlyExpense)
+                }
 
-@Composable private fun BalanceCard(balance: Double, income: Double, expense: Double) {
-    Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.primaryContainer) {
-        Column(Modifier.fillMaxWidth().padding(24.dp)) {
-            Text("Balance total", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
-            Spacer(Modifier.height(6.dp)); Text(formatMoney(balance), style = MaterialTheme.typography.displaySmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
-            Spacer(Modifier.height(24.dp)); Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                MonthlyStat("Ingresos", income, true, Modifier.weight(1f)); MonthlyStat("Gastos", expense, false, Modifier.weight(1f))
-            }
-        }
-    }
-}
+                if (state.expenseSlices.isNotEmpty()) {
+                    item {
+                        ExpensesCard(state.expenseSlices)
+                    }
+                }
 
-@Composable private fun MonthlyStat(label: String, amount: Double, positive: Boolean, modifier: Modifier) = Surface(modifier = modifier, shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.65f)) { Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) { Icon(if (positive) Icons.Filled.ArrowUpward else Icons.Filled.ArrowDownward, null, modifier = Modifier.size(18.dp), tint = if (positive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error); Spacer(Modifier.width(8.dp)); Column { Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant); Text(formatMoney(amount), style = MaterialTheme.typography.labelLarge) } } }
-
-@Composable private fun QuickActions(nav: NavController) = Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) { OutlinedButton(onClick = { nav.navigate(Routes.Accounts) }, modifier = Modifier.weight(1f).height(50.dp)) { Text("Cuentas") }; OutlinedButton(onClick = { nav.navigate(Routes.Categories) }, modifier = Modifier.weight(1f).height(50.dp)) { Text("Categorías") } }
-
-@Composable private fun ExpensesCard(slices: List<ExpenseSlice>) {
-    Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
-        Column(Modifier.fillMaxWidth().padding(20.dp)) {
-            Text("Gastos del mes", style = MaterialTheme.typography.titleLarge)
-            Spacer(Modifier.height(16.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                ExpenseDonut(slices, Modifier.size(116.dp))
-                Spacer(Modifier.width(20.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    slices.forEach { slice ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Surface(
-                                color = ChartColors[slice.colorIndex % ChartColors.size],
-                                shape = RoundedCornerShape(4.dp),
-                                modifier = Modifier.size(10.dp)
-                            ) {}
-                            Spacer(Modifier.width(8.dp))
-                            Column {
-                                Text(slice.label, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                Text(formatMoney(slice.amount), style = MaterialTheme.typography.labelLarge)
-                            }
+                if (state.recentTransactions.isNotEmpty()) {
+                    item {
+                        TransactionsCard(state.recentTransactions, state.categoryNames, onTransactionClick)
+                    }
+                } else {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 30.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("Aún no tienes movimientos", color = ColorSlate, style = Typography.bodyMedium)
                         }
                     }
                 }
@@ -108,24 +106,172 @@ private fun DashboardContent(state: HomeUiState, modifier: Modifier, nav: NavCon
     }
 }
 
-@Composable private fun ExpenseDonut(slices: List<ExpenseSlice>, modifier: Modifier) { val total = slices.sumOf { it.amount }.toFloat(); Canvas(modifier) { var angle = -90f; slices.forEach { slice -> val sweep = (slice.amount / total * 360f).toFloat(); drawArc(ChartColors[slice.colorIndex % ChartColors.size], angle, sweep, false, Offset.Zero, Size(size.width, size.height), style = Stroke(width = 20.dp.toPx(), cap = StrokeCap.Butt)); angle += sweep + 2f } } }
+@Composable
+private fun BalanceCard(balance: Double, income: Double, expense: Double) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 18.dp)
+            .clip(RoundedCornerShape(24.dp))
+            .background(ColorSurface)
+            .border(1.dp, ColorHair, RoundedCornerShape(24.dp))
+            .drawBehind {
+                val brush = Brush.verticalGradient(
+                    0.0f to ColorBrass,
+                    0.9f to Color.Transparent
+                )
+                drawRect(
+                    brush = brush,
+                    topLeft = Offset(0f, 0f),
+                    size = Size(3.dp.toPx(), size.height)
+                )
+            }
+            .padding(top = 22.dp, bottom = 20.dp, start = 26.dp, end = 22.dp)
+    ) {
+        Column {
+            Text("BALANCE TOTAL", style = TypographyEyebrow, color = ColorSlate, modifier = Modifier.padding(bottom = 6.dp))
+            
+            Row(verticalAlignment = Alignment.Top, modifier = Modifier.padding(bottom = 18.dp)) {
+                Text(
+                    text = "$",
+                    style = TextStyle(
+                        fontFamily = Fraunces,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 20.sp,
+                        color = ColorBrass
+                    )
+                )
+                Text(
+                    text = formatMoneyNoSymbol(balance),
+                    style = TextStyle(
+                        fontFamily = Fraunces,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 38.sp,
+                        color = ColorBone
+                    )
+                )
+            }
 
-@Composable private fun WeeklyChart(days: List<DailyExpense>) {
-    val max = days.maxOf { it.amount }.coerceAtLeast(1.0)
-    Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
-        Column(Modifier.fillMaxWidth().padding(20.dp)) {
-            Text("Gasto de los últimos 7 días", style = MaterialTheme.typography.titleLarge)
-            Spacer(Modifier.height(20.dp))
-            Row(Modifier.fillMaxWidth().height(132.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Bottom) {
-                days.forEach { day ->
-                    Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Bottom) {
-                        Surface(
-                            color = MaterialTheme.colorScheme.primary,
-                            shape = RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp),
-                            modifier = Modifier.fillMaxWidth().height((day.amount / max * 96).dp)
-                        ) {}
-                        Spacer(Modifier.height(8.dp))
-                        Text(day.day, style = MaterialTheme.typography.bodySmall)
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                SplitBox(label = "Ingresos", amount = income, dotColor = ColorMoss, modifier = Modifier.weight(1f))
+                SplitBox(label = "Gastos", amount = expense, dotColor = ColorClay, modifier = Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun SplitBox(label: String, amount: Double, dotColor: Color, modifier: Modifier) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(ColorSurfaceHi)
+            .padding(horizontal = 13.dp, vertical = 11.dp)
+    ) {
+        Column {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 4.dp)) {
+                Box(modifier = Modifier.size(6.dp).clip(RoundedCornerShape(3.dp)).background(dotColor))
+                Spacer(Modifier.width(6.dp))
+                Text(label, style = TextStyle(fontSize = 11.sp, color = ColorSlate, fontFamily = Inter))
+            }
+            Text(
+                text = formatMoney(amount),
+                style = TextStyle(
+                    fontFamily = IbmPlexMono,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 14.sp,
+                    color = ColorBone
+                )
+            )
+        }
+    }
+}
+
+@Composable
+private fun ExpensesCard(slices: List<ExpenseSlice>) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 16.dp)
+            .clip(RoundedCornerShape(22.dp))
+            .background(ColorSurface)
+            .border(1.dp, ColorHair, RoundedCornerShape(22.dp))
+            .padding(top = 18.dp, bottom = 18.dp, start = 20.dp, end = 20.dp)
+    ) {
+        Column {
+            Text(
+                text = "Gastos del mes",
+                style = TextStyle(
+                    fontFamily = Fraunces,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 17.sp,
+                    color = ColorBone
+                ),
+                modifier = Modifier.padding(bottom = 14.dp)
+            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(110.dp)
+                        .padding(end = 20.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Canvas(modifier = Modifier.size(90.dp)) {
+                        val strokeWidth = 14.dp.toPx()
+                        val total = slices.sumOf { it.amount }.toFloat()
+                        var currentAngle = -90f
+                        val colors = listOf(ColorBrass, ColorClay, ColorMoss, Color(0xFFD69684))
+                        
+                        if (total > 0) {
+                            slices.forEachIndexed { index, slice ->
+                                val sweepAngle = (slice.amount.toFloat() / total) * 360f
+                                // Leave a tiny 2 degree gap between slices if there's more than one slice
+                                val gap = if (slices.size > 1) 2f else 0f
+                                
+                                drawArc(
+                                    color = colors[index % colors.size],
+                                    startAngle = currentAngle,
+                                    sweepAngle = sweepAngle - gap,
+                                    useCenter = false,
+                                    style = Stroke(width = strokeWidth)
+                                )
+                                currentAngle += sweepAngle
+                            }
+                        } else {
+                            // Empty state (no expenses)
+                            drawArc(
+                                color = ColorHair,
+                                startAngle = -90f,
+                                sweepAngle = 360f,
+                                useCenter = false,
+                                style = Stroke(width = strokeWidth)
+                            )
+                        }
+                    }
+                    val currentMonth = java.time.LocalDate.now().month.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale("es", "ES")).take(3).replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.getDefault()) else it.toString() }
+                    val currentYear = java.time.LocalDate.now().year
+                    val dateText = "$currentMonth\n$currentYear"
+                    Text(
+                        text = dateText,
+                        style = TextStyle(
+                            fontFamily = IbmPlexMono,
+                            fontSize = 11.sp,
+                            color = ColorSlate
+                        ),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
+                
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
+                    val colors = listOf(ColorBrass, ColorClay, ColorMoss, Color(0xFFD69684))
+                    slices.take(4).forEachIndexed { index, slice ->
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                            Box(modifier = Modifier.size(6.dp).clip(RoundedCornerShape(3.dp)).background(colors[index % colors.size]))
+                            Spacer(Modifier.width(8.dp))
+                            Text(text = slice.label, style = TextStyle(fontSize = 12.5.sp, color = ColorBone), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                            Spacer(Modifier.width(8.dp))
+                            Text(text = formatMoney(slice.amount), style = TextStyle(fontFamily = IbmPlexMono, fontSize = 12.sp, color = ColorSlate))
+                        }
                     }
                 }
             }
@@ -133,11 +279,86 @@ private fun DashboardContent(state: HomeUiState, modifier: Modifier, nav: NavCon
     }
 }
 
-@Composable private fun TransactionRow(transaction: Transaction) { val isIncome = transaction.type == TransactionType.income; val tint = when (transaction.type) { TransactionType.income -> MaterialTheme.colorScheme.primary; TransactionType.expense -> MaterialTheme.colorScheme.error; TransactionType.transfer -> MaterialTheme.colorScheme.secondary }; val icon = when (transaction.type) { TransactionType.income -> Icons.Filled.ArrowUpward; TransactionType.expense -> Icons.Filled.ArrowDownward; TransactionType.transfer -> Icons.Filled.SwapHoriz }; Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) { Surface(shape = RoundedCornerShape(14.dp), color = tint.copy(alpha = .12f), modifier = Modifier.size(46.dp)) { Box(contentAlignment = Alignment.Center) { Icon(icon, null, tint = tint) } }; Spacer(Modifier.width(12.dp)); Column(Modifier.weight(1f)) { Text(transaction.merchant ?: if (transaction.type == TransactionType.transfer) "Transferencia" else "Movimiento", style = MaterialTheme.typography.bodyLarge, maxLines = 1); Text(transaction.type.label(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }; Text((if (isIncome) "+" else if (transaction.type == TransactionType.expense) "−" else "") + formatMoney(transaction.amount), style = MaterialTheme.typography.labelLarge, color = tint) } }
+@Composable
+private fun TransactionsCard(transactions: List<Transaction>, categoryNames: Map<String, String>, onTransactionClick: (String) -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 16.dp)
+            .clip(RoundedCornerShape(22.dp))
+            .background(ColorSurface)
+            .border(1.dp, ColorHair, RoundedCornerShape(22.dp))
+            .padding(top = 18.dp, bottom = 18.dp, start = 20.dp, end = 20.dp)
+    ) {
+        Column {
+            Text(
+                text = "Últimos movimientos",
+                style = TextStyle(
+                    fontFamily = Fraunces,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 17.sp,
+                    color = ColorBone
+                ),
+                modifier = Modifier.padding(bottom = 14.dp)
+            )
+            
+            transactions.take(5).forEachIndexed { index, tx ->
+                TxRow(tx, categoryNames, onTransactionClick)
+                if (index < transactions.size - 1 && index < 4) {
+                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(ColorHair))
+                }
+            }
+        }
+    }
+}
 
-@Composable private fun EmptyMovement() = Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceVariant) { Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) { Icon(Icons.Filled.AccountBalanceWallet, null, tint = MaterialTheme.colorScheme.primary); Spacer(Modifier.height(10.dp)); Text("Aún no tienes movimientos", style = MaterialTheme.typography.titleLarge); Text("Registra el primero con el botón Movimiento.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) } }
-@Composable private fun ErrorBanner(message: String) = Surface(shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.errorContainer) { Text(message, Modifier.padding(16.dp), color = MaterialTheme.colorScheme.onErrorContainer) }
+@Composable
+private fun TxRow(tx: Transaction, categoryNames: Map<String, String>, onClick: (String) -> Unit) {
+    val isInc = tx.type == TransactionType.income
+    val isExp = tx.type == TransactionType.expense
+    
+    val iconColor = if (isInc) ColorMoss else if (isExp) ColorClay else ColorSlate
+    val iconBg = if (isInc) ColorMoss.copy(alpha = 0.16f) else if (isExp) ColorClay.copy(alpha = 0.16f) else ColorSlate.copy(alpha = 0.16f)
+    val iconText = if (isInc) "↑" else if (isExp) "↓" else "↔"
+    val amountColor = if (isInc) ColorMoss else if (isExp) ColorClay else ColorBone
+    val prefix = if (isInc) "+" else if (isExp) "−" else ""
+
+    val defaultTitle = tx.categoryId?.let { categoryNames[it] } ?: if (tx.type == TransactionType.transfer) "Transferencia" else "Movimiento"
+    val displayTitle = tx.merchant?.takeIf { it.isNotBlank() } ?: defaultTitle
+
+    Row(
+        modifier = Modifier.fillMaxWidth()
+            .clickable { tx.id?.let { onClick(it) } }
+            .padding(vertical = 11.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(38.dp)
+                .clip(RoundedCornerShape(11.dp))
+                .background(iconBg),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(text = iconText, color = iconColor, fontSize = 15.sp)
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = displayTitle, style = TextStyle(fontSize = 13.5.sp, fontWeight = FontWeight.Medium, color = ColorBone), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(text = tx.type.label(), style = TextStyle(fontSize = 11.5.sp, color = ColorSlate), modifier = Modifier.padding(top = 1.dp))
+        }
+        Spacer(Modifier.width(12.dp))
+        Text(
+            text = "$prefix${formatMoney(tx.amount)}",
+            style = TextStyle(fontFamily = IbmPlexMono, fontWeight = FontWeight.Medium, fontSize = 13.5.sp, color = amountColor),
+            maxLines = 1
+        )
+    }
+}
+
 private fun TransactionType.label() = when (this) { TransactionType.income -> "Ingreso"; TransactionType.expense -> "Gasto"; TransactionType.transfer -> "Transferencia" }
-private fun formatMoney(value: Double): String = NumberFormat.getCurrencyInstance(
+
+private fun formatMoneyNoSymbol(value: Double): String = NumberFormat.getNumberInstance(
     Locale.Builder().setLanguage("es").setRegion("CO").build()
 ).apply { maximumFractionDigits = 0 }.format(value)
+
+private fun formatMoney(value: Double): String = "$" + formatMoneyNoSymbol(value)

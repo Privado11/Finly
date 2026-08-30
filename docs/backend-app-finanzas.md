@@ -7,7 +7,7 @@
 
 - **Supabase** como backend as a service: Postgres + Auth + Edge Functions
 - **Edge Functions** en Deno/TypeScript
-- **LLM**: Claude Haiku (o equivalente de bajo costo) para extracción estructurada
+- **LLM**: Gemini 2.0 Flash (Google AI Studio, tier gratuito) para extracción estructurada, con structured output nativo (`responseSchema`)
 - Conexión desde la app Android vía cliente oficial de Supabase para Kotlin, o llamadas REST directas autenticadas con JWT
 
 > Nota: todos los nombres de tablas, columnas y funciones están en **inglés**, por decisión explícita del proyecto.
@@ -341,8 +341,8 @@ Protege contra abuso si el APK es decompilado y alguien extrae el endpoint (no l
 
 ## 7. Secrets y configuración
 
-- API key del LLM: se configura como secret de Supabase (`LLM_API_KEY`) desde el dashboard — nunca en el código ni en el cliente
-- `LLM_MODEL`: secret opcional para definir el modelo (tiene valor por defecto en el código)
+- API key del LLM: se configura como secret de Supabase (`GEMINI_API_KEY`) desde el dashboard, obtenida gratis en Google AI Studio — nunca en el código ni en el cliente
+- `GEMINI_MODEL`: secret opcional para definir el modelo (default `gemini-2.0-flash`) (tiene valor por defecto en el código)
 - Variables de entorno separadas para desarrollo/producción si se usan branches de Supabase
 
 ---
@@ -361,7 +361,7 @@ Protege contra abuso si el APK es decompilado y alguien extrae el endpoint (no l
 - [x] RLS activo y probado en las 7 tablas
 - [x] Edge Function rechaza requests sin JWT válido
 - [x] Rate limiting implementado (RPC atómico + rechazo con 429)
-- [x] Secrets no versionados en git, solo en Supabase (`LLM_API_KEY` pendiente de configurar por el usuario)
+- [x] Secrets no versionados en git, solo en Supabase (`GEMINI_API_KEY` pendiente de configurar por el usuario)
 - [x] Advisor de seguridad de Supabase: 0 hallazgos
 - [ ] Logs de la Edge Function no deben imprimir el texto completo de notificaciones en claro en producción (revisar antes de lanzar)
 
@@ -376,5 +376,5 @@ Protege contra abuso si el APK es decompilado y alguien extrae el endpoint (no l
 - La Edge Function `parse-notification`, versión activa
 
 **Pendiente (fuera del alcance de lo que se puede hacer sin intervención manual del usuario):**
-- Configurar el secret `LLM_API_KEY` en el dashboard de Supabase
-- Confirmar el proveedor definitivo del LLM (hoy el código llama a la API de Anthropic; cambiar de proveedor solo requiere tocar la función `callLLM` dentro de la Edge Function)
+- Configurar el secret `GEMINI_API_KEY` en el dashboard de Supabase (obtenerla gratis en Google AI Studio)
+- El proveedor del LLM ya está definido: Gemini (tier gratuito). Cambiar de proveedor en el futuro solo requiere tocar la función `callLLM` dentro de la Edge Function

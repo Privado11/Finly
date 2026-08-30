@@ -59,7 +59,7 @@ fun AccountsScreen(viewModel: AccountsViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
-        modifier = Modifier.systemBarsPadding(),
+        modifier = Modifier,
         topBar = {
             TopAppBar(
                 title = {

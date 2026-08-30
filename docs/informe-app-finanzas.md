@@ -62,7 +62,7 @@ Requisito explícito: **poder agregar o eliminar apps monitoreadas sin necesidad
 - Pantalla dedicada "Apps monitoreadas" que lista todas las apps instaladas en el dispositivo (`PackageManager.getInstalledApplications`)
 - Cada app se muestra con ícono real, nombre y un switch de activar/desactivar
 - Buscador para encontrar rápido entre las apps instaladas
-- La whitelist se persiste en una tabla (`allowed_apps`), leída **en cada evento de notificación**, nunca cacheada en memoria al arrancar el servicio — así los cambios aplican de inmediato, sin reiniciar la app
+- La whitelist vive en Supabase (tabla `allowed_apps`) como fuente de verdad, pero se mantiene una **copia local persistida en disco** (no en memoria) que es la que realmente consulta el servicio de notificaciones — así el filtro funciona aunque no haya internet en el momento. Esa copia se sincroniza cada vez que hay conexión y cada vez que el usuario cambia algo en la pantalla de apps monitoreadas
 - Solo las apps marcadas como bancarias/financieras deben activarse aquí; todo lo demás (WhatsApp, redes sociales, etc.) se descarta en el filtro local, **sin salir nunca a internet**
 
 ### 3.5 Manejo de notificaciones sin conexión a internet

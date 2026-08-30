@@ -60,6 +60,43 @@ class TransaccionRepositoryImpl @Inject constructor(
 }
 ```
 
+### 2.1 Caché en memoria para cuentas y categorías
+
+Cuentas y categorías cambian muy poco (se crean una vez, se usan cientos de veces), así que no tiene sentido pedirlas a Supabase cada vez que se abre una pantalla que las necesita (ej. "Nuevo movimiento"). Se mantienen en memoria mientras la app está abierta, evitando el tiempo de carga percibido.
+
+```kotlin
+class AccountsRepository @Inject constructor(
+    private val supabase: SupabaseClient
+) {
+    private val _accounts = MutableStateFlow<List<Account>>(emptyList())
+    val accounts: StateFlow<List<Account>> = _accounts.asStateFlow()
+
+    private var cargado = false
+
+    suspend fun obtenerCuentas(forzarRecarga: Boolean = false): List<Account> {
+        if (!cargado || forzarRecarga) {
+            _accounts.value = supabase.from("accounts").select().decodeList<Account>()
+            cargado = true
+        }
+        return _accounts.value
+    }
+
+    // Se llama solo cuando el usuario crea/edita/elimina una cuenta
+    suspend fun invalidarCache() {
+        cargado = false
+        obtenerCuentas(forzarRecarga = true)
+    }
+}
+```
+
+Mismo patrón para `CategoriesRepository`. La pantalla que las necesita simplemente observa el `StateFlow` (`accounts.collectAsState()`) — si ya se cargaron antes en la sesión (por ejemplo al abrir Home), la pantalla aparece instantánea, sin spinner.
+
+**Reglas:**
+- Se refresca automáticamente la primera vez que se piden en la sesión
+- Se invalida (`invalidarCache()`) únicamente cuando el usuario crea, edita o elimina una cuenta o categoría desde su pantalla correspondiente
+- Opcionalmente, un "pull to refresh" manual en el dashboard como respaldo
+- **Las transacciones NO usan este patrón** — cambian todo el tiempo y siempre deben reflejar el estado real de Supabase, se consultan directo sin caché
+
 ---
 
 ## 3. Flujo de autenticación y desbloqueo con huella
@@ -213,6 +250,42 @@ fun mostrarPromptBiometrico(
 
 ---
 
+## 4.1 Whitelist persistida localmente (para que funcione sin internet)
+
+La whitelist vive en Supabase (`allowed_apps`) como fuente de verdad, pero el `NotificationListenerService` **no puede depender de la red** para decidir si procesa o descarta una notificación — si no hay internet justo quiere consultar Supabase, se rompería la captura. La solución: una copia de solo-lectura persistida en **DataStore** (disco, no memoria), que sobrevive a que Android mate el proceso o a que abras la app sin conexión.
+
+```kotlin
+class WhitelistRepository @Inject constructor(
+    private val supabase: SupabaseClient,
+    private val whitelistDataStore: WhitelistDataStore // persiste en disco, no en RAM
+) {
+    // Lo que consulta el NotificationListenerService en cada evento — nunca toca la red
+    suspend fun estaPermitido(packageName: String): Boolean {
+        return whitelistDataStore.obtenerCache()
+            .any { it.packageName == packageName && it.activo }
+    }
+
+    // Se llama al abrir la pantalla "Apps monitoreadas" y cada vez que hay internet disponible
+    suspend fun sincronizarConSupabase() {
+        val remoto = supabase.from("allowed_apps").select().decodeList<AllowedApp>()
+        whitelistDataStore.guardarCache(remoto)
+    }
+
+    // Al activar/desactivar una app desde la UI: escribe en Supabase y refresca el caché local
+    suspend fun actualizarApp(app: AllowedApp) {
+        supabase.from("allowed_apps").upsert(app)
+        sincronizarConSupabase()
+    }
+}
+```
+
+**Reglas:**
+- La **primera vez** que se usa la app sí se necesita internet, al menos una vez, para traer la whitelist inicial — no hay forma de evitarlo
+- De ahí en adelante, aunque se abra la app sin conexión, el archivo local ya existe en el dispositivo desde la última sincronización — el listener lo lee del disco sin necesitar red
+- Si el usuario activa/desactiva una app **sin internet**, ese cambio queda pendiente de guardar en Supabase (se puede resolver con la misma lógica de reintento de `SincronizacionWorker`, o simplemente bloqueando el switch hasta que haya conexión — más simple para v1)
+
+---
+
 ## 5. Servicio de notificaciones
 
 ```kotlin
@@ -226,7 +299,7 @@ class BankNotificationListener : NotificationListenerService() {
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         val scope = CoroutineScope(Dispatchers.IO)
         scope.launch {
-            // Lectura en cada evento, nunca cacheada al iniciar el servicio
+            // Lee del caché local persistido (DataStore) — nunca depende de la red
             val permitido = whitelistRepository.estaPermitido(sbn.packageName)
             if (!permitido) return@launch
 

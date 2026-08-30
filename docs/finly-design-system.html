@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Finly — Dirección visual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#12161B;
+    --surface:#1A2028;
+    --surface-hi:#212A34;
+    --brass:#C9A667;
+    --brass-soft:#8A7548;
+    --moss:#7FA07A;
+    --clay:#BE7B62;
+    --bone:#EEEAE1;
+    --slate:#8B93A0;
+    --hair:#2A323C;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:#05070A;
+    font-family:'Inter',sans-serif;
+    color:var(--bone);
+    padding:48px 24px 96px;
+  }
+  .intro{
+    max-width:900px;
+    margin:0 auto 56px;
+  }
+  .intro .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:var(--brass);
+    margin-bottom:14px;
+  }
+  .intro h1{
+    font-family:'Fraunces',serif;
+    font-weight:500;
+    font-size:clamp(32px,5vw,48px);
+    line-height:1.1;
+    max-width:14ch;
+    margin-bottom:18px;
+  }
+  .intro p{
+    color:var(--slate);
+    font-size:15px;
+    line-height:1.6;
+    max-width:60ch;
+  }
+  .tokens{
+    max-width:900px;
+    margin:0 auto 64px;
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+    gap:12px;
+  }
+  .swatch{
+    border-radius:14px;
+    padding:14px;
+    border:1px solid var(--hair);
+  }
+  .swatch .chip{width:100%;height:44px;border-radius:8px;margin-bottom:10px;}
+  .swatch .name{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--bone);}
+  .swatch .hex{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--slate);}
+
+  .gallery{
+    display:flex;
+    flex-wrap:wrap;
+    gap:40px;
+    justify-content:center;
+    max-width:1400px;
+    margin:0 auto;
+  }
+  .frame-wrap{text-align:center;}
+  .frame-label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--slate);
+    margin-bottom:14px;
+    letter-spacing:.04em;
+  }
+  .phone{
+    width:320px;
+    height:660px;
+    background:var(--ink);
+    border-radius:40px;
+    border:8px solid #05070A;
+    box-shadow:0 30px 60px -20px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.03);
+    overflow:hidden;
+    position:relative;
+    display:flex;
+    flex-direction:column;
+  }
+  .statusbar{
+    height:30px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 22px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--bone);
+    flex-shrink:0;
+  }
+  .screen{
+    flex:1;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    position:relative;
+  }
+  .content{
+    flex:1;
+    overflow-y:auto;
+    padding:4px 20px 20px;
+  }
+  .content::-webkit-scrollbar{display:none;}
+
+  /* ---- Top app bar ---- */
+  .topbar{padding:10px 20px 18px;}
+  .topbar .brand{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--brass);
+    margin-bottom:4px;
+  }
+  .topbar h2{
+    font-family:'Fraunces',serif;
+    font-weight:500;
+    font-size:26px;
+  }
+  .topbar .sub{font-size:12.5px;color:var(--slate);margin-top:2px;}
+
+  /* ---- Balance card (signature: ledger stripe) ---- */
+  .balance-card{
+    position:relative;
+    background:var(--surface);
+    border-radius:24px;
+    padding:22px 22px 20px 26px;
+    margin-bottom:18px;
+    overflow:hidden;
+    border:1px solid var(--hair);
+  }
+  .balance-card::before{
+    content:"";
+    position:absolute;
+    left:0; top:0; bottom:0;
+    width:3px;
+    background:linear-gradient(180deg, var(--brass), transparent 90%);
+  }
+  .balance-card .label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--slate);
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    margin-bottom:6px;
+  }
+  .balance-card .amount{
+    font-family:'Fraunces',serif;
+    font-weight:500;
+    font-size:38px;
+    color:var(--bone);
+    font-variant-numeric:tabular-nums;
+    margin-bottom:18px;
+  }
+  .balance-card .amount span{color:var(--brass); font-size:.55em; vertical-align:top;}
+  .split{display:flex; gap:10px;}
+  .split .box{
+    flex:1;
+    background:var(--surface-hi);
+    border-radius:14px;
+    padding:11px 13px;
+  }
+  .split .box .k{
+    font-size:11px;color:var(--slate);
+    display:flex;align-items:center;gap:6px;margin-bottom:4px;
+  }
+  .split .box .v{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:14px;
+    font-weight:500;
+  }
+  .dot{width:6px;height:6px;border-radius:50%;display:inline-block;}
+
+  /* ---- section card ---- */
+  .card{
+    background:var(--surface);
+    border:1px solid var(--hair);
+    border-radius:22px;
+    padding:18px 20px;
+    margin-bottom:16px;
+  }
+  .card h3{
+    font-family:'Fraunces',serif;
+    font-weight:500;
+    font-size:17px;
+    margin-bottom:14px;
+  }
+  .ring-row{display:flex;align-items:center;gap:20px;}
+  .ring{
+    width:110px;height:110px;border-radius:50%;
+    background:
+      radial-gradient(closest-side, var(--surface) 68%, transparent 69% 100%),
+      conic-gradient(var(--brass) 0 62%, var(--clay) 62% 100%);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .ring .mid{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--slate);text-align:center;}
+  .legend{display:flex;flex-direction:column;gap:10px;}
+  .legend .row{display:flex;align-items:center;gap:8px;font-size:12.5px;}
+  .legend .row .name{color:var(--bone);}
+  .legend .row .val{font-family:'IBM Plex Mono',monospace;color:var(--slate);margin-left:auto;font-size:12px;}
+
+  /* ---- transaction row (ledger style) ---- */
+  .tx-row{
+    display:flex;align-items:center;gap:12px;
+    padding:11px 0;
+    border-bottom:1px solid var(--hair);
+  }
+  .tx-row:last-child{border-bottom:none;}
+  .tx-icon{
+    width:38px;height:38px;border-radius:11px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:15px;flex-shrink:0;
+  }
+  .tx-icon.exp{background:rgba(190,123,98,.16); color:var(--clay);}
+  .tx-icon.inc{background:rgba(127,160,122,.16); color:var(--moss);}
+  .tx-meta{flex:1; min-width:0;}
+  .tx-meta .n{font-size:13.5px; font-weight:500;}
+  .tx-meta .c{font-size:11.5px; color:var(--slate); margin-top:1px;}
+  .tx-amt{font-family:'IBM Plex Mono',monospace; font-size:13.5px; font-weight:500; white-space:nowrap;}
+  .tx-amt.exp{color:var(--clay);}
+  .tx-amt.inc{color:var(--moss);}
+
+  /* ---- form elements ---- */
+  .segmented{
+    display:flex;
+    background:var(--surface);
+    border-radius:16px;
+    padding:4px;
+    margin-bottom:18px;
+    border:1px solid var(--hair);
+  }
+  .segmented .seg{
+    flex:1;text-align:center;
+    padding:10px 4px;
+    font-size:13px; font-weight:500;
+    border-radius:12px;
+    color:var(--slate);
+  }
+  .segmented .seg.active{
+    background:var(--brass);
+    color:#1A1305;
+  }
+  .field{
+    background:var(--surface);
+    border:1px solid var(--hair);
+    border-radius:16px;
+    padding:15px 17px;
+    margin-bottom:12px;
+  }
+  .field .fl{font-size:10.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--slate); margin-bottom:5px;}
+  .field .fv{font-size:15px; color:var(--bone);}
+  .field .fv.ph{color:#4C555F;}
+  .field.big .fv{font-family:'Fraunces',serif; font-size:26px;}
+  .btn-primary{
+    background:var(--brass);
+    color:#1A1305;
+    text-align:center;
+    padding:16px;
+    border-radius:16px;
+    font-weight:600;
+    font-size:14.5px;
+    margin-top:6px;
+  }
+  .btn-google{
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    border:1px solid var(--hair);
+    padding:14px;border-radius:16px;
+    font-size:13.5px; color:var(--bone); font-weight:500;
+    margin-top:14px;
+  }
+  .divider-row{display:flex;align-items:center;gap:12px;margin:20px 0;color:var(--slate);font-size:11px;}
+  .divider-row::before,.divider-row::after{content:"";flex:1;height:1px;background:var(--hair);}
+
+  /* ---- app toggle rows ---- */
+  .app-row{
+    display:flex;align-items:center;gap:13px;
+    padding:13px 0;
+    border-bottom:1px solid var(--hair);
+  }
+  .app-row:last-child{border-bottom:none;}
+  .app-icon{
+    width:40px;height:40px;border-radius:12px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:16px; flex-shrink:0;
+    background:var(--surface-hi);
+  }
+  .app-meta{flex:1;min-width:0;}
+  .app-meta .n{font-size:13.5px;font-weight:500;}
+  .app-meta .p{font-size:10.5px; color:var(--slate); font-family:'IBM Plex Mono',monospace; margin-top:1px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .toggle{
+    width:38px;height:22px;border-radius:20px;
+    background:var(--surface-hi);
+    border:1px solid var(--hair);
+    position:relative;flex-shrink:0;
+  }
+  .toggle::after{
+    content:"";position:absolute; width:16px;height:16px;border-radius:50%;
+    background:var(--slate); top:2px; left:2px;
+  }
+  .toggle.on{background:rgba(201,166,103,.25); border-color:var(--brass);}
+  .toggle.on::after{background:var(--brass); left:18px;}
+
+  .banner{
+    background:linear-gradient(135deg, rgba(201,166,103,.14), rgba(201,166,103,.04));
+    border:1px solid rgba(201,166,103,.3);
+    border-radius:18px;
+    padding:15px 16px;
+    margin-bottom:16px;
+    display:flex;gap:12px;align-items:flex-start;
+  }
+  .banner .ic{color:var(--brass);font-size:16px;margin-top:1px;}
+  .banner .tx{flex:1;}
+  .banner .tx .t{font-size:13px;font-weight:600;margin-bottom:2px;}
+  .banner .tx .d{font-size:11.5px;color:var(--slate);line-height:1.4;}
+  .banner .act{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--brass);white-space:nowrap;align-self:center;}
+
+  .search{
+    background:var(--surface);
+    border:1px solid var(--hair);
+    border-radius:16px;
+    padding:13px 16px;
+    font-size:13px;color:var(--slate);
+    margin-bottom:16px;
+    display:flex;gap:10px;align-items:center;
+  }
+
+  .menu-row{
+    display:flex;align-items:center;gap:14px;
+    background:var(--surface);
+    border:1px solid var(--hair);
+    border-radius:18px;
+    padding:15px 17px;
+    margin-bottom:12px;
+  }
+  .menu-row .mi{
+    width:38px;height:38px;border-radius:11px;
+    background:rgba(201,166,103,.12);
+    color:var(--brass);
+    display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;
+  }
+  .menu-row .mt{flex:1;}
+  .menu-row .mt .n{font-size:13.5px;font-weight:600;}
+  .menu-row .mt .d{font-size:11px;color:var(--slate);margin-top:2px;}
+  .section-label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--brass); margin:20px 0 10px;
+  }
+
+  /* ---- bottom nav ---- */
+  .navbar{
+    display:flex;
+    padding:10px 8px 16px;
+    border-top:1px solid var(--hair);
+    background:var(--ink);
+    flex-shrink:0;
+  }
+  .navbar .nitem{
+    flex:1;text-align:center;
+    font-size:9.5px;color:var(--slate);
+  }
+  .navbar .nitem .ic{
+    width:30px;height:30px;margin:0 auto 3px;
+    border-radius:14px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:15px;
+  }
+  .navbar .nitem.active{color:var(--bone);}
+  .navbar .nitem.active .ic{background:rgba(201,166,103,.18); color:var(--brass);}
+
+  .fab{
+    position:absolute; right:18px; bottom:74px;
+    background:var(--brass); color:#1A1305;
+    padding:13px 20px 13px 16px;
+    border-radius:20px;
+    font-size:13px; font-weight:600;
+    display:flex; align-items:center; gap:7px;
+    box-shadow:0 10px 24px -8px rgba(201,166,103,.55);
+  }
+
+  .avatar{
+    width:56px;height:56px;border-radius:16px;
+    background:var(--brass);
+    color:#1A1305;
+    font-family:'Fraunces',serif; font-weight:600; font-size:22px;
+    display:flex;align-items:center;justify-content:center;
+    margin-bottom:22px;
+  }
+
+  /* ---- biometric lock ---- */
+  .lock-ring{
+    width:140px;height:140px;border-radius:50%;
+    border:1.5px solid var(--hair);
+    display:flex;align-items:center;justify-content:center;
+    margin:36px auto 26px;
+    position:relative;
+  }
+  .lock-ring::before{
+    content:"";position:absolute; inset:-1.5px;
+    border-radius:50%;
+    background:conic-gradient(var(--brass) 0 78%, transparent 78%);
+    -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+    mask:radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+  }
+  .lock-ring .fp{font-size:44px; color:var(--brass);}
+
+  /* ---- chip filter row ---- */
+  .chip-row{display:flex; gap:8px; overflow-x:auto; margin-bottom:16px; padding-bottom:2px;}
+  .chip{
+    font-size:12px; font-weight:500; white-space:nowrap;
+    padding:9px 15px; border-radius:20px;
+    border:1px solid var(--hair); color:var(--slate);
+    flex-shrink:0;
+  }
+  .chip.on{background:var(--brass); color:#1A1305; border-color:var(--brass);}
+
+  /* date group label */
+  .date-label{
+    font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--slate);
+    letter-spacing:.06em; margin:16px 0 8px;
+  }
+
+  /* ---- account card ---- */
+  .acct-card{
+    display:flex;align-items:center;gap:14px;
+    background:var(--surface);
+    border:1px solid var(--hair);
+    border-radius:20px;
+    padding:16px 18px;
+    margin-bottom:12px;
+  }
+  .acct-card .ai{
+    width:44px;height:44px;border-radius:13px;
+    display:flex;align-items:center;justify-content:center;font-size:18px;
+    background:var(--surface-hi);
+  }
+  .acct-card .am{flex:1;}
+  .acct-card .am .n{font-size:14px;font-weight:600;}
+  .acct-card .am .t{font-size:11px; color:var(--slate); margin-top:2px;}
+  .acct-card .av{font-family:'IBM Plex Mono',monospace; font-size:14px; font-weight:500; text-align:right;}
+  .acct-total{
+    text-align:center; padding:22px 0 26px;
+  }
+  .acct-total .l{font-size:11px; color:var(--slate); text-transform:uppercase; letter-spacing:.08em; margin-bottom:8px;}
+  .acct-total .v{font-family:'Fraunces',serif; font-weight:500; font-size:34px;}
+
+  /* ---- categories grid ---- */
+  .cat-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:12px;}
+  .cat-tile{
+    background:var(--surface);
+    border:1px solid var(--hair);
+    border-radius:18px;
+    padding:16px 8px;
+    text-align:center;
+  }
+  .cat-tile .ci{
+    width:40px;height:40px;border-radius:12px;
+    margin:0 auto 9px;
+    display:flex;align-items:center;justify-content:center;font-size:17px;
+  }
+  .cat-tile .cn{font-size:11px; font-weight:500;}
+  .cat-tile.add{
+    border-style:dashed; color:var(--slate);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+  }
+  .cat-tile.add .ci{background:transparent; border:1.5px dashed var(--hair); color:var(--slate);}
+
+  /* ---- budget row ---- */
+  .budget-item{margin-bottom:20px;}
+  .budget-item .bh{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px;}
+  .budget-item .bh .n{font-size:13px; font-weight:600;}
+  .budget-item .bh .p{font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--slate);}
+  .budget-track{height:8px; border-radius:8px; background:var(--surface-hi); overflow:hidden;}
+  .budget-fill{height:100%; border-radius:8px; background:var(--brass);}
+  .budget-fill.warn{background:var(--clay);}
+
+  /* ---- settings rows ---- */
+  .set-group{margin-bottom:22px;}
+  .set-row{
+    display:flex;align-items:center;gap:13px;
+    padding:14px 0;
+    border-bottom:1px solid var(--hair);
+  }
+  .set-row:last-child{border-bottom:none;}
+  .set-row .si{width:22px; text-align:center; color:var(--slate); font-size:15px;}
+  .set-row .sn{flex:1; font-size:13.5px;}
+  .set-row .sv{font-size:12px; color:var(--slate);}
+
+  /* ---- empty state ---- */
+  .empty{
+    text-align:center;
+    padding:50px 10px 30px;
+  }
+  .empty .ei{
+    width:64px;height:64px;border-radius:50%;
+    background:var(--surface);
+    border:1px solid var(--hair);
+    display:flex;align-items:center;justify-content:center;
+    font-size:24px; margin:0 auto 18px; color:var(--brass);
+  }
+  .empty .et{font-family:'Fraunces',serif; font-size:18px; margin-bottom:8px;}
+  .empty .ed{font-size:12.5px; color:var(--slate); max-width:24ch; margin:0 auto; line-height:1.5;}
+
+  .review-card{
+    background:var(--surface);
+    border:1px solid var(--hair);
+    border-radius:18px;
+    padding:16px;
+    margin-bottom:12px;
+  }
+  .review-card .rh{display:flex; justify-content:space-between; margin-bottom:8px;}
+  .review-card .rh .app{font-size:12px; font-weight:600; color:var(--brass);}
+  .review-card .rh .time{font-size:10.5px; color:var(--slate);}
+  .review-card .rt{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px; color:var(--bone);
+    background:var(--surface-hi);
+    border-radius:10px; padding:10px 12px;
+    margin-bottom:12px; line-height:1.5;
+  }
+  .review-actions{display:flex; gap:8px;}
+  .review-actions .ra{
+    flex:1; text-align:center; padding:9px; border-radius:11px;
+    font-size:12px; font-weight:600;
+  }
+  .ra.discard{border:1px solid var(--hair); color:var(--slate);}
+  .ra.classify{background:var(--brass); color:#1A1305;}
+
+  /* ---- notification shade mockup ---- */
+  .shade{
+    background:#000;
+    border-radius:34px;
+    padding:16px 12px;
+  }
+  .shade .time{
+    text-align:center; font-family:'IBM Plex Mono',monospace;
+    font-size:34px; color:rgba(255,255,255,.9); margin:14px 0 20px; font-weight:300;
+  }
+  .notif{
+    background:rgba(255,255,255,.08);
+    backdrop-filter:blur(6px);
+    border-radius:20px;
+    padding:13px 14px;
+    margin-bottom:9px;
+    display:flex; gap:11px;
+  }
+  .notif .nic{
+    width:22px;height:22px;border-radius:7px;
+    background:var(--brass);
+    color:#1A1305;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Fraunces',serif; font-weight:700; font-size:12px;
+    flex-shrink:0; margin-top:1px;
+  }
+  .notif .nb{flex:1; min-width:0;}
+  .notif .nh{display:flex; align-items:baseline; gap:6px; margin-bottom:3px;}
+  .notif .nh .app{font-size:10.5px; color:rgba(255,255,255,.55); text-transform:uppercase; letter-spacing:.04em;}
+  .notif .nh .t{font-size:10px; color:rgba(255,255,255,.4); margin-left:auto;}
+  .notif .nt{font-size:12.5px; font-weight:600; color:#fff; margin-bottom:2px;}
+  .notif .nd{font-size:11.5px; color:rgba(255,255,255,.65); line-height:1.4;}
+  .notif .nd .amt{font-family:'IBM Plex Mono',monospace;}
+  .notif .nd .amt.inc{color:#9BC199;}
+  .notif .nd .amt.exp{color:#D69684;}
+
+  /* ---- app icon ---- */
+  .icon-stage{
+    display:flex; flex-direction:column; align-items:center; gap:14px;
+  }
+  .icon-glyph{
+    width:120px; height:120px;
+    background:linear-gradient(150deg, #1A2028, #12161B);
+    display:flex; align-items:center; justify-content:center;
+    position:relative;
+    overflow:hidden;
+  }
+  .icon-glyph .stripe{
+    position:absolute; left:0; top:0; bottom:0; width:8px;
+    background:linear-gradient(180deg, var(--brass), transparent);
+  }
+  .icon-glyph .f{
+    font-family:'Fraunces',serif; font-weight:600; font-size:56px;
+    color:var(--brass); margin-left:6px;
+  }
+  .icon-square{border-radius:26px;}
+  .icon-squircle{border-radius:38px 12px 38px 12px;}
+  .icon-circle{border-radius:50%;}
+  .icon-name{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--slate);}
+
+  .home-mock{
+    width:280px; padding:26px 22px;
+    border-radius:28px;
+    display:flex; flex-direction:column; align-items:center; gap:10px;
+  }
+  .home-mock.light{background:linear-gradient(160deg,#DCE3E8,#B7C4CD);}
+  .home-mock.dark{background:linear-gradient(160deg,#1B2530,#0A0F14);}
+  .home-mock .hicon{width:56px; height:56px; border-radius:16px; overflow:hidden;}
+  .home-mock .hicon .icon-glyph{width:100%; height:100%;}
+  .home-mock .hicon .icon-glyph .f{font-size:26px;}
+  .home-mock .hicon .icon-glyph .stripe{width:4px;}
+  .home-mock .hl{font-size:10px; margin-top:2px;}
+  .home-mock.light .hl{color:#2C3640;}
+  .home-mock.dark .hl{color:#DCE3E8;}
+
+
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <div class="eyebrow">Finly — dirección visual 002</div>
+  <h1>Un cuaderno de cuentas, no otro dashboard genérico</h1>
+  <p>
+    En vez del negro + verde menta plano que ya tenías (el combo más común que genera cualquier IA hoy),
+    le di a Finly un carácter propio: tinta profunda, acentos en <strong style="color:#C9A667">latón</strong> con toques de
+    <strong style="color:#7FA07A">musgo</strong> y <strong style="color:#BE7B62">arcilla</strong> para ingresos/egresos, tipografía
+    serif <em>Fraunces</em> para los montos grandes y monoespaciada <em>IBM Plex Mono</em> para las cifras de la lista —
+    un guiño directo a un libro contable, que es literalmente lo que la app hace. Sigue siendo Material Design 3 real
+    (segmented buttons, FAB, tonal cards, navigation bar), solo que con una piel propia.
+  </p>
+</div>
+
+<div class="tokens">
+  <div class="swatch"><div class="chip" style="background:#12161B"></div><div class="name">Ink</div><div class="hex">#12161B</div></div>
+  <div class="swatch"><div class="chip" style="background:#1A2028"></div><div class="name">Surface</div><div class="hex">#1A2028</div></div>
+  <div class="swatch"><div class="chip" style="background:#C9A667"></div><div class="name">Brass</div><div class="hex">#C9A667</div></div>
+  <div class="swatch"><div class="chip" style="background:#7FA07A"></div><div class="name">Moss</div><div class="hex">#7FA07A</div></div>
+  <div class="swatch"><div class="chip" style="background:#BE7B62"></div><div class="name">Clay</div><div class="hex">#BE7B62</div></div>
+  <div class="swatch"><div class="chip" style="background:#EEEAE1"></div><div class="name">Bone</div><div class="hex">#EEEAE1</div></div>
+</div>
+
+<div class="gallery">
+
+  <!-- LOGIN -->
+  <div class="frame-wrap">
+    <div class="frame-label">01 · Ingreso</div>
+    <div class="phone">
+      <div class="statusbar"><span>1:20</span><span>23 ago</span></div>
+      <div class="screen">
+        <div class="content" style="padding-top:36px;">
+          <div class="avatar">F</div>
+          <div style="font-family:'Fraunces',serif; font-weight:500; font-size:28px; margin-bottom:6px;">Qué bueno verte</div>
+          <div style="color:var(--slate); font-size:13.5px; margin-bottom:30px; line-height:1.5;">Ingresa para tener tus finanzas bajo control.</div>
+
+          <div class="field"><div class="fl">Correo electrónico</div><div class="fv ph">tucorreo@ejemplo.com</div></div>
+          <div class="field"><div class="fl">Contraseña</div><div class="fv ph">••••••••</div></div>
+          <div class="btn-primary">Ingresar</div>
+          <div class="divider-row">o</div>
+          <div class="btn-google">
+            <span style="font-family:'IBM Plex Mono',monospace;">G</span> Continuar con Google
+          </div>
+          <div style="text-align:center; margin-top:26px; font-size:12.5px; color:var(--slate);">
+            ¿Aún no tienes cuenta? <span style="color:var(--brass); font-weight:600;">Crear cuenta</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOME -->
+  <div class="frame-wrap">
+    <div class="frame-label">02 · Inicio</div>
+    <div class="phone">
+      <div class="statusbar"><span>1:20</span><span>◇ ▲ 23%</span></div>
+      <div class="screen">
+        <div class="content">
+          <div class="topbar" style="padding:6px 0 16px;">
+            <div class="brand">Finly</div>
+            <h2>Tu resumen</h2>
+          </div>
+
+          <div class="balance-card">
+            <div class="label">Balance total</div>
+            <div class="amount"><span>$</span>1.849.800</div>
+            <div class="split">
+              <div class="box">
+                <div class="k"><span class="dot" style="background:var(--moss)"></span>Ingresos</div>
+                <div class="v">$1.859.800</div>
+              </div>
+              <div class="box">
+                <div class="k"><span class="dot" style="background:var(--clay)"></span>Gastos</div>
+                <div class="v">$10.000</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Gastos del mes</h3>
+            <div class="ring-row">
+              <div class="ring"><div class="mid">Ago<br>2026</div></div>
+              <div class="legend">
+                <div class="row"><span class="dot" style="background:var(--brass)"></span><span class="name">Compras</span><span class="val">$10.000</span></div>
+                <div class="row"><span class="dot" style="background:var(--clay)"></span><span class="name">Transporte</span><span class="val">$0</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Últimos movimientos</h3>
+            <div class="tx-row">
+              <div class="tx-icon exp">↓</div>
+              <div class="tx-meta"><div class="n">Pago a Brayan</div><div class="c">Compras</div></div>
+              <div class="tx-amt exp">−$10.000</div>
+            </div>
+            <div class="tx-row">
+              <div class="tx-icon inc">↑</div>
+              <div class="tx-meta"><div class="n">Nómina</div><div class="c">Ingreso</div></div>
+              <div class="tx-amt inc">+$1.859.800</div>
+            </div>
+          </div>
+        </div>
+        <div class="fab">＋ Movimiento</div>
+        <div class="navbar">
+          <div class="nitem active"><div class="ic">⌂</div>Inicio</div>
+          <div class="nitem"><div class="ic">▤</div>Movim.</div>
+          <div class="nitem"><div class="ic">◔</div>Apps</div>
+          <div class="nitem"><div class="ic">⋯</div>Más</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NUEVO MOVIMIENTO -->
+  <div class="frame-wrap">
+    <div class="frame-label">03 · Nuevo movimiento</div>
+    <div class="phone">
+      <div class="statusbar"><span>1:20</span><span>◇ ▲ 23%</span></div>
+      <div class="screen">
+        <div class="content">
+          <div class="topbar" style="padding:6px 0 20px;">
+            <h2>Nuevo movimiento</h2>
+            <div class="sub">Registra tu dinero en segundos</div>
+          </div>
+
+          <div class="section-label">Tipo</div>
+          <div class="segmented">
+            <div class="seg active">Gasto</div>
+            <div class="seg">Ingreso</div>
+            <div class="seg">Transferencia</div>
+          </div>
+
+          <div class="field big"><div class="fl">Monto (COP)</div><div class="fv ph">$0</div></div>
+          <div class="field"><div class="fl">Cuenta</div><div class="fv ph">Seleccionar cuenta</div></div>
+          <div class="field"><div class="fl">Categoría</div><div class="fv ph">Sin categoría</div></div>
+          <div class="field"><div class="fl">Comercio (opcional)</div><div class="fv ph">Ej. Rappi, Éxito...</div></div>
+
+          <div class="btn-primary">Guardar movimiento</div>
+        </div>
+        <div class="navbar">
+          <div class="nitem"><div class="ic">⌂</div>Inicio</div>
+          <div class="nitem active"><div class="ic">▤</div>Movim.</div>
+          <div class="nitem"><div class="ic">◔</div>Apps</div>
+          <div class="nitem"><div class="ic">⋯</div>Más</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- APPS MONITOREADAS -->
+  <div class="frame-wrap">
+    <div class="frame-label">04 · Apps monitoreadas</div>
+    <div class="phone">
+      <div class="statusbar"><span>1:20</span><span>◇ ▲ 23%</span></div>
+      <div class="screen">
+        <div class="content">
+          <div class="topbar" style="padding:6px 0 16px;">
+            <h2>Apps monitoreadas</h2>
+            <div class="sub">Tú decides qué notificaciones se procesan</div>
+          </div>
+
+          <div class="banner">
+            <div class="ic">🔔</div>
+            <div class="tx">
+              <div class="t">Activa el acceso a notificaciones</div>
+              <div class="d">Android requiere que lo habilites en Ajustes.</div>
+            </div>
+            <div class="act">Activar</div>
+          </div>
+
+          <div class="search">🔍 Buscar una app</div>
+          <div style="font-size:11.5px; color:var(--slate); margin-bottom:16px; line-height:1.5;">
+            Solo activa apps bancarias o billeteras que quieras registrar.
+          </div>
+
+          <div class="app-row">
+            <div class="app-icon">🏦</div>
+            <div class="app-meta"><div class="n">Bancolombia</div><div class="p">com.bancolombia.app</div></div>
+            <div class="toggle on"></div>
+          </div>
+          <div class="app-row">
+            <div class="app-icon">💜</div>
+            <div class="app-meta"><div class="n">Nequi</div><div class="p">com.nequi.MobileApp</div></div>
+            <div class="toggle on"></div>
+          </div>
+          <div class="app-row">
+            <div class="app-icon">📦</div>
+            <div class="app-meta"><div class="n">Amazon compras</div><div class="p">com.amazon.mShop</div></div>
+            <div class="toggle"></div>
+          </div>
+          <div class="app-row">
+            <div class="app-icon">💬</div>
+            <div class="app-meta"><div class="n">WhatsApp</div><div class="p">com.whatsapp</div></div>
+            <div class="toggle"></div>
+          </div>
+        </div>
+        <div class="fab">＋ Movimiento</div>
+        <div class="navbar">
+          <div class="nitem"><div class="ic">⌂</div>Inicio</div>
+          <div class="nitem"><div class="ic">▤</div>Movim.</div>
+          <div class="nitem active"><div class="ic">◔</div>Apps</div>
+          <div class="nitem"><div class="ic">⋯</div>Más</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAS OPCIONES -->
+  <div class="frame-wrap">
+    <div class="frame-label">05 · Más opciones</div>
+    <div class="phone">
+      <div class="statusbar"><span>1:20</span><span>◇ ▲ 23%</span></div>
+      <div class="screen">
+        <div class="content">
+          <div class="topbar" style="padding:6px 0 8px;">
+            <h2>Más opciones</h2>
+            <div class="sub">Configuración y herramientas</div>
+          </div>
+
+          <div class="section-label">Gestión</div>
+          <div class="menu-row">
+            <div class="mi">👛</div>
+            <div class="mt"><div class="n">Cuentas</div><div class="d">Bancos y billeteras</div></div>
+          </div>
+          <div class="menu-row">
+            <div class="mi">◆</div>
+            <div class="mt"><div class="n">Categorías</div><div class="d">Íconos y colores</div></div>
+          </div>
+          <div class="menu-row">
+            <div class="mi">✎</div>
+            <div class="mt"><div class="n">Bandeja de revisión</div><div class="d">Movimientos sin clasificar</div></div>
+          </div>
+
+          <div class="section-label">Próximamente</div>
+          <div class="menu-row" style="opacity:.45;">
+            <div class="mi">⚙</div>
+            <div class="mt"><div class="n">Configuración</div><div class="d">Tema, biometría, cuenta</div></div>
+          </div>
+          <div class="menu-row" style="opacity:.45;">
+            <div class="mi">◒</div>
+            <div class="mt"><div class="n">Reportes</div><div class="d">Tendencias, exportar</div></div>
+          </div>
+        </div>
+        <div class="navbar">
+          <div class="nitem"><div class="ic">⌂</div>Inicio</div>
+          <div class="nitem"><div class="ic">▤</div>Movim.</div>
+          <div class="nitem"><div class="ic">◔</div>Apps</div>
+          <div class="nitem active"><div class="ic">⋯</div>Más</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="intro" style="margin-top:80px;">
+  <div class="eyebrow">Continuación</div>
+  <h1 style="max-width:20ch;">El resto del sistema — todo lo que Finly necesita para sentirse completo</h1>
+  <p>No me limité a rehacer lo que ya tenías: agregué las pantallas que le faltaban al recorrido completo — bloqueo biométrico, cuentas, categorías, detalle de un movimiento, historial con filtros, bandeja de revisión (vacía y con pendientes), presupuestos, y configuración.</p>
+</div>
+
+<div class="gallery">
+
+  <!-- BIOMETRIC LOCK -->
+  <div class="frame-wrap">
+    <div class="frame-label">06 · Bloqueo biométrico</div>
+    <div class="phone">
+      <div class="statusbar"><span>1:20</span><span>◇ ▲ 23%</span></div>
+      <div class="screen">
+        <div class="content" style="text-align:center;">
+          <div class="lock-ring"><div class="fp">◈</div></div>
+          <div style="font-family:'Fraunces',serif; font-size:20px; margin-bottom:8px;">Hola de nuevo, Walter</div>
+          <div style="font-size:12.5px; color:var(--slate); margin-bottom:34px;">Usa tu huella para continuar</div>
+          <div style="font-size:11.5px; color:var(--brass); font-weight:600;">Usar contraseña en su lugar</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CUENTAS -->
+  <div class="frame-wrap">
+    <div class="frame-label">07 · Cuentas</div>
+    <div class="phone">
+      <div class="statusbar"><span>1:20</span><span>◇ ▲ 23%</span></div>
+      <div class="screen">
+        <div class="content">
+          <div class="topbar" style="padding:6px 0 0;">
+            <h2>Cuentas</h2>
+            <div class="sub">Bancos, efectivo y billeteras</div>
+          </div>
+          <div class="acct-total">
+            <div class="l">Patrimonio total</div>
+            <div class="v">$1.849.800</div>
+          </div>
+          <div class="acct-card">
+            <div class="ai">🏦</div>
+            <div class="am"><div class="n">Bancolombia Ahorros</div><div class="t">Banco</div></div>
+            <div class="av">$1.620.300</div>
+          </div>
+          <div class="acct-card">
+            <div class="ai">💜</div>
+            <div class="am"><div class="n">Nequi</div><div class="t">Billetera digital</div></div>
+            <div class="av">$219.500</div>
+          </div>
+          <div class="acct-card">
+            <div class="ai">💵</div>
+            <div class="am"><div class="n">Efectivo</div><div class="t">Efectivo</div></div>
+            <div class="av">$10.000</div>
+          </div>
+        </div>
+        <div class="fab">＋ Cuenta</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CATEGORIAS -->
+  <div class="frame-wrap">
+    <div class="frame-label">08 · Categorías</div>
+    <div class="phone">
+      <div class="statusbar"><span>1:20</span><span>◇ ▲ 23%</span></div>
+      <div class="screen">
+        <div class="content">
+          <div class="topbar" style="padding:6px 0 6px;">
+            <h2>Categorías</h2>
+            <div class="sub">Personaliza íconos y colores</div>
+          </div>
+          <div class="section-label">Egresos</div>
+          <div class="cat-grid">
+            <div class="cat-tile"><div class="ci" style="background:rgba(190,123,98,.16); color:var(--clay);">🍽</div><div class="cn">Comida</div></div>
+            <div class="cat-tile"><div class="ci" style="background:rgba(190,123,98,.16); color:var(--clay);">🚌</div><div class="cn">Transporte</div></div>
+            <div class="cat-tile"><div class="ci" style="background:rgba(190,123,98,.16); color:var(--clay);">🧾</div><div class="cn">Servicios</div></div>
+            <div class="cat-tile"><div class="ci" style="background:rgba(190,123,98,.16); color:var(--clay);">🎬</div><div class="cn">Ocio</div></div>
+            <div class="cat-tile"><div class="ci" style="background:rgba(190,123,98,.16); color:var(--clay);">🏠</div><div class="cn">Hogar</div></div>
+            <div class="cat-tile add"><div class="ci">＋</div><div class="cn">Nueva</div></div>
+          </div>
+          <div class="section-label">Ingresos</div>
+          <div class="cat-grid">
+            <div class="cat-tile"><div class="ci" style="background:rgba(127,160,122,.16); color:var(--moss);">💼</div><div class="cn">Nómina</div></div>
+            <div class="cat-tile"><div class="ci" style="background:rgba(127,160,122,.16); color:var(--moss);">✦</div><div class="cn">Freelance</div></div>
+            <div class="cat-tile add"><div class="ci">＋</div><div class="cn">Nueva</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DETALLE / EDICION -->
+  <div class="frame-wrap">
+    <div class="frame-label">09 · Detalle de movimiento</div>
+    <div class="phone">
+      <div class="statusbar"><span>1:20</span><span>◇ ▲ 23%</span></div>
+      <div class="screen">
+        <div class="content">
+          <div class="topbar" style="padding:6px 0 8px;">
+            <h2>Pago a Brayan</h2>
+            <div class="sub">Registrado por notificación · Nequi</div>
+          </div>
+          <div class="balance-card" style="padding:24px 22px;">
+            <div class="label">Monto</div>
+            <div class="amount" style="color:var(--clay);">−$10.000</div>
+          </div>
+          <div class="field"><div class="fl">Tipo</div><div class="fv">Gasto</div></div>
+          <div class="field"><div class="fl">Cuenta</div><div class="fv">Nequi</div></div>
+          <div class="field"><div class="fl">Categoría</div><div class="fv">Compras</div></div>
+          <div class="field"><div class="fl">Fecha</div><div class="fv">23 ago 2026 · 1:18 pm</div></div>
+          <div class="field"><div class="fl">Origen</div><div class="fv" style="color:var(--brass);">Notificación · IA</div></div>
+          <div class="btn-google" style="color:var(--clay); border-color:rgba(190,123,98,.3);">Eliminar movimiento</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LISTA COMPLETA / FILTROS -->
+  <div class="frame-wrap">
+    <div class="frame-label">10 · Movimientos</div>
+    <div class="phone">
+      <div class="statusbar"><span>1:20</span><span>◇ ▲ 23%</span></div>
+      <div class="screen">
+        <div class="content">
+          <div class="topbar" style="padding:6px 0 4px;">
+            <h2>Movimientos</h2>
+          </div>
+          <div class="chip-row">
+            <div class="chip on">Todos</div>
+            <div class="chip">Ingresos</div>
+            <div class="chip">Gastos</div>
+            <div class="chip">Transferencias</div>
+            <div class="chip">Nequi</div>
+          </div>
+
+          <div class="date-label">Hoy · 23 ago</div>
+          <div class="card" style="padding:6px 20px;">
+            <div class="tx-row">
+              <div class="tx-icon exp">↓</div>
+              <div class="tx-meta"><div class="n">Pago a Brayan</div><div class="c">Compras · Nequi</div></div>
+              <div class="tx-amt exp">−$10.000</div>
+            </div>
+          </div>
+
+          <div class="date-label">Ayer · 22 ago</div>
+          <div class="card" style="padding:6px 20px;">
+            <div class="tx-row">
+              <div class="tx-icon inc">↑</div>
+              <div class="tx-meta"><div class="n">Nómina</div><div class="c">Ingreso · Bancolombia</div></div>
+              <div class="tx-amt inc">+$1.859.800</div>
+            </div>
+            <div class="tx-row">
+              <div class="tx-icon exp">⇄</div>
+              <div class="tx-meta"><div class="n">A Nequi</div><div class="c">Transferencia</div></div>
+              <div class="tx-amt" style="color:var(--slate);">$200.000</div>
+            </div>
+          </div>
+        </div>
+        <div class="navbar">
+          <div class="nitem"><div class="ic">⌂</div>Inicio</div>
+          <div class="nitem active"><div class="ic">▤</div>Movim.</div>
+          <div class="nitem"><div class="ic">◔</div>Apps</div>
+          <div class="nitem"><div class="ic">⋯</div>Más</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BANDEJA DE REVISION -->
+  <div class="frame-wrap">
+    <div class="frame-label">11 · Bandeja de revisión</div>
+    <div class="phone">
+      <div class="statusbar"><span>1:20</span><span>◇ ▲ 23%</span></div>
+      <div class="screen">
+        <div class="content">
+          <div class="topbar" style="padding:6px 0 16px;">
+            <h2>Bandeja de revisión</h2>
+            <div class="sub">2 movimientos sin clasificar</div>
+          </div>
+          <div class="review-card">
+            <div class="rh"><span class="app">Davivienda</span><span class="time">hace 12 min</span></div>
+            <div class="rt">"Davivienda: transaccion por $85.000 aprobada en comercio no identificado"</div>
+            <div class="review-actions">
+              <div class="ra discard">Descartar</div>
+              <div class="ra classify">Clasificar</div>
+            </div>
+          </div>
+          <div class="review-card">
+            <div class="rh"><span class="app">Nequi</span><span class="time">hace 2 h</span></div>
+            <div class="rt">"Confirma la operacion realizada por $32.400 desde tu cuenta"</div>
+            <div class="review-actions">
+              <div class="ra discard">Descartar</div>
+              <div class="ra classify">Clasificar</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BANDEJA VACIA -->
+  <div class="frame-wrap">
+    <div class="frame-label">11b · Bandeja vacía</div>
+    <div class="phone">
+      <div class="statusbar"><span>1:20</span><span>◇ ▲ 23%</span></div>
+      <div class="screen">
+        <div class="content">
+          <div class="topbar" style="padding:6px 0 16px;">
+            <h2>Bandeja de revisión</h2>
+            <div class="sub">Todo al día</div>
+          </div>
+          <div class="empty">
+            <div class="ei">✓</div>
+            <div class="et">Todo clasificado</div>
+            <div class="ed">Cuando una notificación no se entienda del todo, aparecerá aquí para que la revises.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRESUPUESTOS -->
+  <div class="frame-wrap">
+    <div class="frame-label">12 · Presupuestos</div>
+    <div class="phone">
+      <div class="statusbar"><span>1:20</span><span>◇ ▲ 23%</span></div>
+      <div class="screen">
+        <div class="content">
+          <div class="topbar" style="padding:6px 0 18px;">
+            <h2>Presupuestos</h2>
+            <div class="sub">Agosto 2026</div>
+          </div>
+          <div class="card">
+            <div class="budget-item">
+              <div class="bh"><span class="n">Comida</span><span class="p">$310k / $400k</span></div>
+              <div class="budget-track"><div class="budget-fill" style="width:78%"></div></div>
+            </div>
+            <div class="budget-item">
+              <div class="bh"><span class="n">Transporte</span><span class="p">$95k / $150k</span></div>
+              <div class="budget-track"><div class="budget-fill" style="width:63%"></div></div>
+            </div>
+            <div class="budget-item" style="margin-bottom:0;">
+              <div class="bh"><span class="n">Compras</span><span class="p">$210k / $180k</span></div>
+              <div class="budget-track"><div class="budget-fill warn" style="width:100%"></div></div>
+            </div>
+          </div>
+          <div class="btn-google">＋ Nuevo presupuesto</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFIGURACION -->
+  <div class="frame-wrap">
+    <div class="frame-label">13 · Configuración</div>
+    <div class="phone">
+      <div class="statusbar"><span>1:20</span><span>◇ ▲ 23%</span></div>
+      <div class="screen">
+        <div class="content">
+          <div class="topbar" style="padding:6px 0 16px;">
+            <h2>Configuración</h2>
+          </div>
+          <div class="set-group">
+            <div class="section-label" style="margin-top:0;">Cuenta</div>
+            <div class="set-row"><span class="si">◐</span><span class="sn">Walter Jiménez</span><span class="sv">Editar</span></div>
+            <div class="set-row"><span class="si">✉</span><span class="sn">Correo</span><span class="sv">walter@···.com</span></div>
+          </div>
+          <div class="set-group">
+            <div class="section-label">Seguridad</div>
+            <div class="set-row"><span class="si">◈</span><span class="sn">Desbloqueo con huella</span><span class="toggle on"></span></div>
+          </div>
+          <div class="set-group">
+            <div class="section-label">Preferencias</div>
+            <div class="set-row"><span class="si">◑</span><span class="sn">Tema</span><span class="sv">Oscuro</span></div>
+            <div class="set-row"><span class="si">🔔</span><span class="sn">Notificaciones</span><span class="toggle on"></span></div>
+          </div>
+          <div class="set-group">
+            <div class="set-row"><span class="si">↪</span><span class="sn" style="color:var(--clay);">Cerrar sesión</span></div>
+          </div>
+        </div>
+        <div class="navbar">
+          <div class="nitem"><div class="ic">⌂</div>Inicio</div>
+          <div class="nitem"><div class="ic">▤</div>Movim.</div>
+          <div class="nitem"><div class="ic">◔</div>Apps</div>
+          <div class="nitem active"><div class="ic">⋯</div>Más</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ================= NOTIFICACIONES ================= -->
+<div class="intro" style="margin-top:80px;">
+  <div class="eyebrow">Notificaciones locales</div>
+  <h1 style="max-width:20ch;">Cómo se ve Finly cuando no la tienes abierta</h1>
+  <p>Las 5 notificaciones que definimos (ingreso, egreso, revisión manual, guardado sin conexión, sincronización) con el mismo lenguaje visual: el ícono de app en miniatura como "sello" en latón, y las cifras siempre en monoespaciada.</p>
+</div>
+
+<div class="gallery">
+  <div class="frame-wrap">
+    <div class="frame-label">Panel de notificaciones</div>
+    <div class="phone">
+      <div class="screen" style="background:#000;">
+        <div class="content" style="padding:0 10px;">
+          <div class="shade">
+            <div class="time">1:20</div>
+
+            <div class="notif">
+              <div class="nic">F</div>
+              <div class="nb">
+                <div class="nh"><span class="app">Finly · Movimientos</span><span class="t">ahora</span></div>
+                <div class="nt">Ingreso registrado</div>
+                <div class="nd"><span class="amt inc">+$1.859.800</span> · Nómina</div>
+              </div>
+            </div>
+
+            <div class="notif">
+              <div class="nic">F</div>
+              <div class="nb">
+                <div class="nh"><span class="app">Finly · Movimientos</span><span class="t">2 min</span></div>
+                <div class="nt">Egreso registrado</div>
+                <div class="nd"><span class="amt exp">−$10.000</span> · Rappi</div>
+              </div>
+            </div>
+
+            <div class="notif">
+              <div class="nic">F</div>
+              <div class="nb">
+                <div class="nh"><span class="app">Finly · Revisión</span><span class="t">5 min</span></div>
+                <div class="nt">Revisión pendiente</div>
+                <div class="nd">Hay un movimiento que no pudimos clasificar. Tócalo para revisarlo.</div>
+              </div>
+            </div>
+
+            <div class="notif">
+              <div class="nic">F</div>
+              <div class="nb">
+                <div class="nh"><span class="app">Finly · Sincronización</span><span class="t">1 h</span></div>
+                <div class="nt">Sin conexión</div>
+                <div class="nd">Guardamos tu movimiento y lo procesaremos cuando vuelva internet.</div>
+              </div>
+            </div>
+
+            <div class="notif">
+              <div class="nic">F</div>
+              <div class="nb">
+                <div class="nh"><span class="app">Finly · Sincronización</span><span class="t">1 h</span></div>
+                <div class="nt">Sincronización completa</div>
+                <div class="nd">Se procesaron 3 movimientos pendientes.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= ICONO DE LA APP ================= -->
+<div class="intro" style="margin-top:80px;">
+  <div class="eyebrow">Ícono de app</div>
+  <h1 style="max-width:20ch;">Una "F" con la misma firma que el resto de la app</h1>
+  <p>Mismo motivo que el borde del balance card: una franja en latón al lado del glifo, como el lomo de un libro de cuentas. Fraunces en el glifo para que se sienta igual de elegante en el ícono que dentro de la app. Se ve bien en las tres formas que Android puede recortar (círculo, squircle, cuadrado redondeado) porque el contenido vive centrado con margen de sobra.</p>
+</div>
+
+<div class="gallery">
+  <div class="frame-wrap">
+    <div class="icon-stage">
+      <div class="icon-glyph icon-square"><div class="stripe"></div><div class="f">F</div></div>
+      <div class="icon-name">Cuadrado redondeado</div>
+    </div>
+  </div>
+  <div class="frame-wrap">
+    <div class="icon-stage">
+      <div class="icon-glyph icon-squircle"><div class="stripe"></div><div class="f">F</div></div>
+      <div class="icon-name">Squircle</div>
+    </div>
+  </div>
+  <div class="frame-wrap">
+    <div class="icon-stage">
+      <div class="icon-glyph icon-circle"><div class="stripe"></div><div class="f">F</div></div>
+      <div class="icon-name">Círculo (Pixel/AOSP)</div>
+    </div>
+  </div>
+
+  <div class="frame-wrap">
+    <div class="frame-label">Sobre wallpaper claro</div>
+    <div class="home-mock light">
+      <div class="hicon"><div class="icon-glyph icon-squircle"><div class="stripe"></div><div class="f">F</div></div></div>
+      <div class="hl">Finly</div>
+    </div>
+  </div>
+  <div class="frame-wrap">
+    <div class="frame-label">Sobre wallpaper oscuro</div>
+    <div class="home-mock dark">
+      <div class="hicon"><div class="icon-glyph icon-squircle"><div class="stripe"></div><div class="f">F</div></div></div>
+      <div class="hl">Finly</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

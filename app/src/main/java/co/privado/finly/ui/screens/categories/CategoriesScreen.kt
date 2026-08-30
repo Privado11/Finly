@@ -55,7 +55,7 @@ import co.privado.finly.domain.model.CategoryType
 fun CategoriesScreen(viewModel: CategoriesViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsState()
     Scaffold(
-        modifier = Modifier.systemBarsPadding(),
+        modifier = Modifier,
         topBar = { TopAppBar(title = { Column { Text("Categorías", style = MaterialTheme.typography.titleLarge); Text("Clasifica cada movimiento", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) } }) },
         floatingActionButton = { ExtendedFloatingActionButton(onClick = { viewModel.showCreateDialog(true) }, icon = { Icon(Icons.Filled.Add, null) }, text = { Text("Nueva categoría") }) }
     ) { padding ->

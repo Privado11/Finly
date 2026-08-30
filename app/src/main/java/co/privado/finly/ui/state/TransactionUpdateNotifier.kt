@@ -11,8 +11,15 @@ import javax.inject.Singleton
 class TransactionUpdateNotifier @Inject constructor() {
     private val _created = MutableSharedFlow<Transaction>(extraBufferCapacity = 1)
     val created = _created.asSharedFlow()
+    
+    private val _deleted = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val deleted = _deleted.asSharedFlow()
 
     fun notifyCreated(transaction: Transaction) {
         _created.tryEmit(transaction)
+    }
+
+    fun notifyDeleted(transactionId: String) {
+        _deleted.tryEmit(transactionId)
     }
 }
