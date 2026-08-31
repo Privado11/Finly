@@ -47,6 +47,17 @@ fun TransactionsScreen(initialType: co.privado.finly.domain.model.TransactionTyp
     var category by remember { mutableStateOf<Category?>(null) }
     var picker by remember { mutableStateOf<String?>(null) }
 
+    androidx.compose.runtime.LaunchedEffect(state.initialTransaction, state.accounts, state.categories) {
+        state.initialTransaction?.let { tx ->
+            amount = tx.amount.toLong().toString()
+            merchant = tx.merchant ?: ""
+            notes = tx.description ?: ""
+            type = tx.type
+            account = state.accounts.find { it.id == tx.sourceAccountId }
+            category = state.categories.find { it.id == tx.categoryId }
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize().background(ColorInk)) {
         if (state.isLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -75,7 +86,13 @@ fun TransactionsScreen(initialType: co.privado.finly.domain.model.TransactionTyp
                     }
                     Column {
                         Text(
-                            text = "Nuevo movimiento",
+                            text = "MOVIMIENTO",
+                            style = TypographyEyebrow,
+                            color = ColorBrass,
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        )
+                        Text(
+                            text = if (state.initialTransaction != null) "Editar movimiento" else "Nuevo movimiento",
                             style = TextStyle(
                                 fontFamily = Fraunces,
                                 fontWeight = FontWeight.Medium,
@@ -228,7 +245,7 @@ fun TransactionsScreen(initialType: co.privado.finly.domain.model.TransactionTyp
                         CircularProgressIndicator(modifier = Modifier.size(20.dp), color = ColorSlate, strokeWidth = 2.dp)
                     } else {
                         Text(
-                            text = "Guardar movimiento",
+                            text = if (state.initialTransaction != null) "Guardar cambios" else "Guardar movimiento",
                             style = TextStyle(
                                 fontSize = 14.5.sp,
                                 fontWeight = FontWeight.SemiBold,

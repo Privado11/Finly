@@ -14,9 +14,11 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -34,6 +36,7 @@ fun SettingsScreen(
     val userName by viewModel.userName.collectAsState()
     
     var showEditNameDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     Scaffold(
         modifier = Modifier.background(ColorInk),
@@ -44,12 +47,23 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            Text(
-                text = "CONFIGURACIÓN",
-                style = TypographyEyebrow,
-                color = ColorBrass,
-                modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 24.dp, top = 24.dp)
-            )
+            Column(modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 16.dp)) {
+                Text(
+                    text = "CONFIGURACIÓN",
+                    style = TypographyEyebrow,
+                    color = ColorBrass,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+                Text(
+                    text = "Tus ajustes",
+                    style = TextStyle(
+                        fontFamily = Fraunces,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 26.sp,
+                        color = ColorBone
+                    )
+                )
+            }
 
             // Section: Cuenta
             Text(
@@ -92,7 +106,22 @@ fun SettingsScreen(
                     icon = Icons.Filled.Fingerprint,
                     title = "Desbloqueo con huella",
                     checked = biometricEnabled,
-                    onCheckedChange = { viewModel.setBiometricEnabled(it) }
+                    onCheckedChange = { isEnabling -> 
+                        if (isEnabling) {
+                            val activity = context as? androidx.fragment.app.FragmentActivity
+                            if (activity != null && co.privado.finly.util.BiometricHelper.puedeAutenticar(activity)) {
+                                co.privado.finly.util.BiometricHelper.mostrarPrompt(
+                                    activity = activity,
+                                    onExito = { viewModel.setBiometricEnabled(true) },
+                                    onFallo = { /* Falla, no hacemos nada y el toggle se queda desactivado */ }
+                                )
+                            } else {
+                                android.widget.Toast.makeText(context, "Tu dispositivo no soporta o no tiene configurada la biometría", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        } else {
+                            viewModel.setBiometricEnabled(false)
+                        }
+                    }
                 )
             }
             

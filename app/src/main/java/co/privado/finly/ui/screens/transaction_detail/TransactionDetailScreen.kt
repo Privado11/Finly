@@ -173,6 +173,30 @@ fun TransactionDetailScreen(onBack: () -> Unit, onEdit: (String) -> Unit = {}, v
                         DetailRow("Origen de datos", tx.source.label())
                     }
 
+                    // Notas del usuario
+                    if (!tx.description.isNullOrBlank()) {
+                        DetailCard {
+                            Text(
+                                text = "NOTA",
+                                style = TypographyEyebrow,
+                                color = ColorBrass,
+                                modifier = Modifier.padding(bottom = 12.dp)
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(ColorSurfaceHi)
+                                    .padding(14.dp)
+                            ) {
+                                Text(
+                                    text = tx.description,
+                                    style = TextStyle(fontFamily = Inter, fontSize = 14.sp, color = ColorBone, lineHeight = 20.sp)
+                                )
+                            }
+                        }
+                    }
+
                     // Card 3: Raw notification (if present)
                     if (!tx.rawNotification.isNullOrBlank()) {
                         DetailCard {

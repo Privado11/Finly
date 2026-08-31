@@ -65,7 +65,7 @@ class TransactionsViewModel @Inject constructor(
                 _uiState.update { it.copy(isSaving = true, error = null) }
                 val txDate = _uiState.value.initialTransaction?.date ?: Instant.now().toString()
                 val txSource = _uiState.value.initialTransaction?.source ?: TransactionSource.manual
-                val newTx = Transaction(id = transactionId ?: "", sourceAccountId = sourceId, destinationAccountId = null, categoryId = categoryId, type = type, amount = value, merchant = merchant.trim().ifBlank { null }, source = txSource, date = txDate)
+                val newTx = Transaction(id = transactionId ?: "", sourceAccountId = sourceId, destinationAccountId = null, categoryId = categoryId, type = type, amount = value, merchant = merchant.trim().ifBlank { null }, description = notes?.trim()?.ifBlank { null }, source = txSource, date = txDate)
                 
                 val result = if (transactionId != null) {
                     transactionRepository.updateTransaction(transactionId, newTx)
