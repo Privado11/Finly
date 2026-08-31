@@ -11,8 +11,20 @@ data class Account(
     val type: AccountType,
     val currency: String = "COP",
     val active: Boolean = true,
+    @SerialName("opening_balance") val openingBalance: Double = 0.0,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null
+)
+
+@Serializable
+data class AccountBalance(
+    @SerialName("account_id") val id: String,
+    val name: String,
+    val type: AccountType,
+    val currency: String,
+    val active: Boolean,
+    @SerialName("opening_balance") val openingBalance: Double,
+    val balance: Double
 )
 
 @Serializable

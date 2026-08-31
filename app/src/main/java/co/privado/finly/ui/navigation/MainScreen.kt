@@ -17,11 +17,24 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.TrendingDown
+import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.PieChart
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.ReceiptLong
@@ -62,6 +75,7 @@ import androidx.navigation.navArgument
 import co.privado.finly.ui.screens.transaction_detail.TransactionDetailScreen
 
 import co.privado.finly.ui.screens.history.HistoryScreen
+import co.privado.finly.ui.screens.stats.StatsScreen
 
 data class BottomNavItem(
     val route: String,
@@ -72,7 +86,7 @@ data class BottomNavItem(
 
 private val bottomNavItems = listOf(
     BottomNavItem(Routes.Home, "Inicio", Icons.Filled.Home, Icons.Outlined.Home),
-    BottomNavItem(Routes.History, "Movim.", Icons.Filled.ReceiptLong, Icons.Outlined.ReceiptLong),
+    BottomNavItem(Routes.Stats, "Estadís.", Icons.Filled.PieChart, Icons.Outlined.PieChart),
     BottomNavItem(Routes.AllowedApps, "Apps", Icons.Filled.Notifications, Icons.Outlined.Notifications),
     BottomNavItem(Routes.More, "Más", Icons.Filled.MoreHoriz, Icons.Outlined.MoreHoriz)
 )
@@ -166,6 +180,8 @@ fun FinlyFab(text: String = "Movimiento", onClick: () -> Unit) {
 }
 
 
+@androidx.compose.material3.ExperimentalMaterial3Api
+@kotlin.OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
     onLogout: () -> Unit = {},viewModel: MainViewModel = hiltViewModel()) {
@@ -230,17 +246,29 @@ fun MainScreen(
                 enterTransition = { EnterTransition.None },
                 exitTransition = { ExitTransition.None }
             ) {
-            composable(Routes.Home) { HomeScreen(onNavigateToAccounts = { nav.navigate(Routes.Accounts) }, onTransactionClick = { id -> nav.navigate("${Routes.TransactionDetail}/$id") }) }
+            composable(Routes.Home) { HomeScreen(onNavigateToAccounts = { nav.navigate(Routes.Accounts) }, onNavigateToHistory = { nav.navigate(Routes.History) }, onTransactionClick = { id -> nav.navigate("${Routes.TransactionDetail}/$id") }) }
             composable(Routes.History) { HistoryScreen(onTransactionClick = { id -> nav.navigate("${Routes.TransactionDetail}/$id") }) }
             composable(
                 route = "${Routes.TransactionDetail}/{transactionId}",
                 arguments = listOf(navArgument("transactionId") { type = NavType.StringType })
             ) {
-                TransactionDetailScreen(onBack = { nav.popBackStack() })
+                TransactionDetailScreen(onBack = { nav.popBackStack() }, onEdit = { id -> nav.navigate("${Routes.AddTransaction}?transactionId=$id") })
             }
-            composable(Routes.AddTransaction) { TransactionsScreen(onSaved = { nav.popBackStack() }, onBack = { nav.popBackStack() }) }
+                        composable(
+                route = "${Routes.AddTransaction}/{type}",
+                arguments = listOf(navArgument("type") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val typeStr = backStackEntry.arguments?.getString("type")
+                val initialType = if (typeStr == "income") co.privado.finly.domain.model.TransactionType.income else co.privado.finly.domain.model.TransactionType.expense
+                TransactionsScreen(initialType = initialType, onSaved = { nav.popBackStack() }, onBack = { nav.popBackStack() })
+            }
+            composable(
+                route = "${Routes.AddTransaction}?transactionId={transactionId}",
+                arguments = listOf(navArgument("transactionId") { type = NavType.StringType; nullable = true })
+            ) { TransactionsScreen(initialType = co.privado.finly.domain.model.TransactionType.expense, onSaved = { nav.popBackStack() }, onBack = { nav.popBackStack() }) }
             composable(Routes.Transactions) { TransactionsScreen(onSaved = { nav.popBackStack() }, onBack = { nav.popBackStack() }) } // fallback just in case
             composable(Routes.Accounts) { AccountsScreen() }
+            composable(Routes.Stats) { StatsScreen() }
             composable(Routes.AllowedApps) { AllowedAppsScreen() }
             composable(Routes.More) {
                 MoreScreen(
@@ -291,4 +319,5 @@ fun MainScreen(
         }
     }
 }
+
 }

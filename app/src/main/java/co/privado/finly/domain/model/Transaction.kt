@@ -25,8 +25,7 @@ data class Transaction(
 @Serializable
 enum class TransactionType {
     @SerialName("income") income,
-    @SerialName("expense") expense,
-    @SerialName("transfer") transfer
+    @SerialName("expense") expense
 }
 
 @Serializable

@@ -1,0 +1,10 @@
+--- app/src/main/java/co/privado/finly/ui/navigation/MainScreen.kt
++++ app/src/main/java/co/privado/finly/ui/navigation/MainScreen.kt
+@@ -198,6 +199,7 @@
+                 requestPermissionLauncher.launch(permission)
+             }
+         }
++    }
+     
+     DisposableEffect(context) {
+         val activity = context as? android.app.Activity

@@ -1,0 +1,19 @@
+--- app/src/main/java/co/privado/finly/data/repository/ProcesadorNotificaciones.kt
++++ app/src/main/java/co/privado/finly/data/repository/ProcesadorNotificaciones.kt
+@@ -95,8 +95,7 @@
+             // Determinar el tipo de transacción
+             val transactionType = when (data.type) {
+                 "income" -> TransactionType.income
+                 "expense" -> TransactionType.expense
+-                "transfer" -> TransactionType.transfer
+                 else -> TransactionType.expense
+             }
+ 
+@@ -125,8 +124,7 @@
+                 Log.d(TAG, "Transacción guardada exitosamente: ${tx.id}")
+                 when (data.type) {
+                     "income" -> notificador.ingresoRegistrado(amount.toString(), data.merchant, tx.id!!)
+                     "expense" -> notificador.egresoRegistrado(amount.toString(), data.merchant, tx.id!!)
+-                    "transfer" -> notificador.transferenciaRegistrada(amount.toString(), tx.id!!)
+                 }
+             }.onFailure {

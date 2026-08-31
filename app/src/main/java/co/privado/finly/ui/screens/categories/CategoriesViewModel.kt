@@ -62,14 +62,14 @@ class CategoriesViewModel @Inject constructor(
         }
     }
 
-    fun createCategory(name: String, type: CategoryType) {
+    fun createCategory(name: String, type: CategoryType, parentId: String?, icon: String?) {
         if (name.isBlank()) {
             _uiState.update { it.copy(error = "Escribe un nombre para la categoría.") }
             return
         }
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true, error = null) }
-            categoryRepository.addCategory(name, type, icon = type.defaultIcon(), color = type.defaultColor())
+            categoryRepository.addCategory(name, type, parentId, icon, type.defaultColor())
                 .onSuccess { category -> 
                     _uiState.update { it.copy(categories = (it.categories + category).sortedBy { item -> item.name.lowercase() }, isSaving = false, showCreateDialog = false) }
                     globalMessageNotifier.showMessage("Categoría creada")

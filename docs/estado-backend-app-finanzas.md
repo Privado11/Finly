@@ -38,8 +38,12 @@ Datos personales del usuario, se llena automáticamente al crear la cuenta.
 | name | text | |
 | type | text | check: `cash`, `bank`, `credit_card`, `digital_wallet` |
 | currency | text | default `COP` |
+| opening_balance | numeric(14,2) | default `0` — saldo inicial al crear la cuenta, editable |
 | active | boolean | default `true` |
 | created_at / updated_at | timestamptz | |
+
+### 2.2.1 Vista `account_balances`
+Los saldos no se guardan en `accounts`, se calculan. Esta vista devuelve `balance = opening_balance + suma de transacciones` por cuenta, respetando RLS (`security_invoker = true`). El frontend consulta esta vista para mostrar saldos, nunca suma transacciones a mano.
 
 ### 2.3 `categories`
 | Columna | Tipo | Notas |

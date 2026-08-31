@@ -36,6 +36,8 @@ class SessionDataStore @Inject constructor(
         val LAST_NAME = stringPreferencesKey("last_name")
         val EMAIL = stringPreferencesKey("email")
         val BIOMETRIC_ENABLED = androidx.datastore.preferences.core.booleanPreferencesKey("biometric_enabled")
+        val APP_NOTIFICATIONS = androidx.datastore.preferences.core.booleanPreferencesKey("app_notifications_enabled")
+        val BALANCES_VISIBLE = androidx.datastore.preferences.core.booleanPreferencesKey("balances_visible")
     }
 
     val accessTokenFlow: Flow<String?> = context.finlySessionStore.data.map { it[Keys.ACCESS_TOKEN] }
@@ -47,6 +49,7 @@ class SessionDataStore @Inject constructor(
     val emailFlow: Flow<String?> = context.finlySessionStore.data.map { it[Keys.EMAIL] }
 
     val biometricEnabledState: StateFlow<Boolean> = context.finlySessionStore.data.map { it[Keys.BIOMETRIC_ENABLED] ?: true }.stateIn(scope, SharingStarted.Eagerly, true)
+    val appNotificationsState: StateFlow<Boolean> = context.finlySessionStore.data.map { it[Keys.APP_NOTIFICATIONS] ?: true }.stateIn(scope, SharingStarted.Eagerly, true)
 
     val userDisplayState: StateFlow<Pair<String, String>> = combine(
         firstNameFlow,
@@ -56,6 +59,12 @@ class SessionDataStore @Inject constructor(
         val name = "${first.orEmpty()} ${last.orEmpty()}".trim()
         Pair(name.ifEmpty { "Usuario" }, email ?: "Sin correo")
     }.stateIn(scope, SharingStarted.Eagerly, Pair("Usuario", "Sin correo"))
+
+    val balancesVisibleState: StateFlow<Boolean> = context.finlySessionStore.data.map { it[Keys.BALANCES_VISIBLE] ?: true }.stateIn(scope, SharingStarted.Eagerly, true)
+
+    suspend fun setBalancesVisible(visible: Boolean) {
+        context.finlySessionStore.edit { it[Keys.BALANCES_VISIBLE] = visible }
+    }
 
     suspend fun guardarSesion(accessToken: String, refreshToken: String?, expiresAtSeconds: Long?, userId: String?) {
         context.finlySessionStore.edit { prefs ->
@@ -94,6 +103,14 @@ class SessionDataStore @Inject constructor(
 
     suspend fun setBiometricEnabled(enabled: Boolean) {
         context.finlySessionStore.edit { it[Keys.BIOMETRIC_ENABLED] = enabled }
+    }
+
+    suspend fun setAppNotificationsEnabled(enabled: Boolean) {
+        context.finlySessionStore.edit { it[Keys.APP_NOTIFICATIONS] = enabled }
+    }
+
+    suspend fun areAppNotificationsEnabled(): Boolean {
+        return context.finlySessionStore.data.first()[Keys.APP_NOTIFICATIONS] ?: true
     }
 
     suspend fun getUserId(): String? {

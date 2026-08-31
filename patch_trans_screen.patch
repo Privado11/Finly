@@ -1,0 +1,74 @@
+--- app/src/main/java/co/privado/finly/ui/screens/transactions/TransactionsScreen.kt
++++ app/src/main/java/co/privado/finly/ui/screens/transactions/TransactionsScreen.kt
+@@ -37,11 +37,11 @@
+ import androidx.compose.material3.Icon
+ import androidx.compose.material3.IconButton
+ 
+-fun TransactionsScreen(onSaved: () -> Unit = {}, onBack: () -> Unit = {}, viewModel: TransactionsViewModel = hiltViewModel()) {
++fun TransactionsScreen(initialType: TransactionType = TransactionType.expense, onSaved: () -> Unit = {}, onBack: () -> Unit = {}, viewModel: TransactionsViewModel = hiltViewModel()) {
+     val state by viewModel.uiState.collectAsState()
+     var amount by rememberSaveable { mutableStateOf("") }
+     var merchant by rememberSaveable { mutableStateOf("") }
+-    var type by rememberSaveable { mutableStateOf(TransactionType.expense) }
++    var type by rememberSaveable { mutableStateOf(initialType) }
+     var account by remember { mutableStateOf<AccountBalance?>(null) }
+     var destination by remember { mutableStateOf<AccountBalance?>(null) }
+     var category by remember { mutableStateOf<Category?>(null) }
+@@ -100,52 +100,6 @@
+                         )
+                     }
+                 }
+-
+-                // Tipo
+-                Text(
+-                    text = "TIPO",
+-                    style = TypographyEyebrow,
+-                    color = ColorBrass,
+-                    modifier = Modifier.padding(bottom = 10.dp)
+-                )
+-                
+-                // Segmented control
+-                Row(
+-                    modifier = Modifier
+-                        .fillMaxWidth()
+-                        .padding(bottom = 22.dp)
+-                        .clip(RoundedCornerShape(16.dp))
+-                        .background(ColorSurface)
+-                        .border(1.dp, ColorHair, RoundedCornerShape(16.dp))
+-                        .padding(4.dp)
+-                ) {
+-                    val options = listOf(
+-                        TransactionType.expense to "Gasto",
+-                        TransactionType.income to "Ingreso"
+-                    )
+-                    options.forEach { (optType, label) ->
+-                        val selected = type == optType
+-                        Box(
+-                            modifier = Modifier
+-                                .weight(1f)
+-                                .clip(RoundedCornerShape(12.dp))
+-                                .background(if (selected) ColorBrass else Color.Transparent)
+-                                .clickable {
+-                                    if (type != optType) {
+-                                        type = optType
+-                                        category = null
+-                                        account = null
+-                                        destination = null
+-                                    }
+-                                }
+-                                .padding(vertical = 10.dp),
+-                            contentAlignment = Alignment.Center
+-                        ) {
+-                            Text(
+-                                text = label,
+-                                style = TextStyle(
+-                                    fontSize = 13.sp,
+-                                    fontWeight = FontWeight.Medium,
+-                                    color = if (selected) Color(0xFF1A1305) else ColorSlate
+-                                )
+-                            )
+-                        }
+-                    }
+-                }
+ 
+                 // Monto

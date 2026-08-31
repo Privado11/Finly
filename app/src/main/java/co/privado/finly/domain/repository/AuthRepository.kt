@@ -5,6 +5,7 @@ interface AuthRepository {
     suspend fun signUp(email: String, password: String, firstName: String, lastName: String): Result<Unit>
     suspend fun signInWithGoogle(idToken: String): Result<Unit>
     suspend fun signOut()
+    suspend fun updateUserMetadata(firstName: String, lastName: String)
     suspend fun currentUserId(): String?
     suspend fun isSessionValid(): Boolean
 }

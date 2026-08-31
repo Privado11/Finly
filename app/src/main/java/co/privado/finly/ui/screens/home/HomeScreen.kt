@@ -1,5 +1,11 @@
 package co.privado.finly.ui.screens.home
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+
+
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -8,6 +14,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -30,12 +38,15 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import co.privado.finly.domain.model.Transaction
 import co.privado.finly.domain.model.TransactionType
 import co.privado.finly.ui.theme.*
+import co.privado.finly.util.toIcon
+import androidx.compose.material3.Icon
 import java.text.NumberFormat
 import java.util.Locale
 
 @Composable
-fun HomeScreen(onNavigateToAccounts: () -> Unit = {}, onTransactionClick: (String) -> Unit = {}, viewModel: HomeViewModel = hiltViewModel()) {
+fun HomeScreen(onNavigateToAccounts: () -> Unit = {}, onNavigateToHistory: () -> Unit = {}, onTransactionClick: (String) -> Unit = {}, viewModel: HomeViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsState()
+    val isVisible by viewModel.isBalancesVisible.collectAsState()
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -50,22 +61,35 @@ fun HomeScreen(onNavigateToAccounts: () -> Unit = {}, onTransactionClick: (Strin
             ) {
                 item {
                     // Topbar
-                    Column(modifier = Modifier.padding(bottom = 16.dp)) {
-                        Text(
-                            text = "FINLY",
-                            style = TypographyEyebrow,
-                            color = ColorBrass,
-                            modifier = Modifier.padding(bottom = 4.dp)
-                        )
-                        Text(
-                            text = "Tu resumen",
-                            style = TextStyle(
-                                fontFamily = Fraunces,
-                                fontWeight = FontWeight.Medium,
-                                fontSize = 26.sp,
-                                color = ColorBone
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Bottom
+                    ) {
+                        Column {
+                            Text(
+                                text = "FINLY",
+                                style = TypographyEyebrow,
+                                color = ColorBrass,
+                                modifier = Modifier.padding(bottom = 4.dp)
                             )
-                        )
+                            Text(
+                                text = "Tu resumen",
+                                style = TextStyle(
+                                    fontFamily = Fraunces,
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = 26.sp,
+                                    color = ColorBone
+                                )
+                            )
+                        }
+                        IconButton(onClick = { viewModel.toggleBalancesVisibility() }) {
+                            Icon(
+                                imageVector = if (isVisible) Icons.Rounded.Visibility else Icons.Rounded.VisibilityOff,
+                                contentDescription = "Mostrar balances",
+                                tint = ColorSlate
+                            )
+                        }
                     }
                 }
                 
@@ -76,18 +100,18 @@ fun HomeScreen(onNavigateToAccounts: () -> Unit = {}, onTransactionClick: (Strin
                 }
 
                 item {
-                    BalanceCard(state.balance, state.monthlyIncome, state.monthlyExpense)
+                    BalanceCard(state.balance, state.monthlyIncome, state.monthlyExpense, isVisible)
                 }
 
                 if (state.expenseSlices.isNotEmpty()) {
                     item {
-                        ExpensesCard(state.expenseSlices)
+                        ExpensesCard(state.expenseSlices, isVisible)
                     }
                 }
 
                 if (state.recentTransactions.isNotEmpty()) {
                     item {
-                        TransactionsCard(state.recentTransactions, state.categoryNames, onTransactionClick)
+                        TransactionsCard(state.recentTransactions, state.categoryNames, state.categoryIcons, isVisible, onTransactionClick, onNavigateToHistory)
                     }
                 } else {
                     item {
@@ -107,7 +131,7 @@ fun HomeScreen(onNavigateToAccounts: () -> Unit = {}, onTransactionClick: (Strin
 }
 
 @Composable
-private fun BalanceCard(balance: Double, income: Double, expense: Double) {
+private fun BalanceCard(balance: Double, income: Double, expense: Double, isVisible: Boolean) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -142,7 +166,7 @@ private fun BalanceCard(balance: Double, income: Double, expense: Double) {
                     )
                 )
                 Text(
-                    text = formatMoneyNoSymbol(balance),
+                    text = if (isVisible) formatMoneyNoSymbol(balance) else "••••",
                     style = TextStyle(
                         fontFamily = Fraunces,
                         fontWeight = FontWeight.Medium,
@@ -153,15 +177,15 @@ private fun BalanceCard(balance: Double, income: Double, expense: Double) {
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                SplitBox(label = "Ingresos", amount = income, dotColor = ColorMoss, modifier = Modifier.weight(1f))
-                SplitBox(label = "Gastos", amount = expense, dotColor = ColorClay, modifier = Modifier.weight(1f))
+                SplitBox(label = "Ingresos", amount = income, dotColor = ColorMoss, isVisible = isVisible, modifier = Modifier.weight(1f))
+                SplitBox(label = "Gastos", amount = expense, dotColor = ColorClay, isVisible = isVisible, modifier = Modifier.weight(1f))
             }
         }
     }
 }
 
 @Composable
-private fun SplitBox(label: String, amount: Double, dotColor: Color, modifier: Modifier) {
+private fun SplitBox(label: String, amount: Double, dotColor: Color, isVisible: Boolean, modifier: Modifier) {
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(14.dp))
@@ -175,7 +199,7 @@ private fun SplitBox(label: String, amount: Double, dotColor: Color, modifier: M
                 Text(label, style = TextStyle(fontSize = 11.sp, color = ColorSlate, fontFamily = Inter))
             }
             Text(
-                text = formatMoney(amount),
+                text = if (isVisible) formatMoney(amount) else "$ ••••",
                 style = TextStyle(
                     fontFamily = IbmPlexMono,
                     fontWeight = FontWeight.Medium,
@@ -188,7 +212,7 @@ private fun SplitBox(label: String, amount: Double, dotColor: Color, modifier: M
 }
 
 @Composable
-private fun ExpensesCard(slices: List<ExpenseSlice>) {
+private fun ExpensesCard(slices: List<ExpenseSlice>, isVisible: Boolean) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -270,7 +294,7 @@ private fun ExpensesCard(slices: List<ExpenseSlice>) {
                             Spacer(Modifier.width(8.dp))
                             Text(text = slice.label, style = TextStyle(fontSize = 12.5.sp, color = ColorBone), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                             Spacer(Modifier.width(8.dp))
-                            Text(text = formatMoney(slice.amount), style = TextStyle(fontFamily = IbmPlexMono, fontSize = 12.sp, color = ColorSlate))
+                            Text(text = if (isVisible) formatMoney(slice.amount) else "$ ••••", style = TextStyle(fontFamily = IbmPlexMono, fontSize = 12.sp, color = ColorSlate))
                         }
                     }
                 }
@@ -280,7 +304,7 @@ private fun ExpensesCard(slices: List<ExpenseSlice>) {
 }
 
 @Composable
-private fun TransactionsCard(transactions: List<Transaction>, categoryNames: Map<String, String>, onTransactionClick: (String) -> Unit) {
+private fun TransactionsCard(transactions: List<Transaction>, categoryNames: Map<String, String>, categoryIcons: Map<String, String>, isVisible: Boolean, onTransactionClick: (String) -> Unit, onNavigateToHistory: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -291,21 +315,59 @@ private fun TransactionsCard(transactions: List<Transaction>, categoryNames: Map
             .padding(top = 18.dp, bottom = 18.dp, start = 20.dp, end = 20.dp)
     ) {
         Column {
-            Text(
-                text = "Últimos movimientos",
-                style = TextStyle(
-                    fontFamily = Fraunces,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 17.sp,
-                    color = ColorBone
-                ),
-                modifier = Modifier.padding(bottom = 14.dp)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 14.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Últimos movimientos",
+                    style = TextStyle(
+                        fontFamily = Fraunces,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 17.sp,
+                        color = ColorBone
+                    )
+                )
+                Text(
+                    text = "Ver todos",
+                    style = TextStyle(
+                        fontFamily = Inter,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = ColorSlate
+                    ),
+                    modifier = Modifier.clickable { onNavigateToHistory() }
+                )
+            }
             
-            transactions.take(5).forEachIndexed { index, tx ->
-                TxRow(tx, categoryNames, onTransactionClick)
-                if (index < transactions.size - 1 && index < 4) {
-                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(ColorHair))
+            val today = java.time.LocalDate.now()
+            val yesterday = today.minusDays(1)
+            val dateFormatter = java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy", java.util.Locale("es", "ES"))
+            
+            val limitedTxs = transactions.take(5)
+            val grouped = limitedTxs.groupBy { tx ->
+                val txDate = runCatching { java.time.Instant.parse(tx.date).atZone(java.time.ZoneId.systemDefault()).toLocalDate() }.getOrNull()
+                val formattedDate = txDate?.format(dateFormatter)?.replaceFirstChar { it.uppercase() } ?: ""
+                when (txDate) {
+                    today -> "Hoy • $formattedDate"
+                    yesterday -> "Ayer • $formattedDate"
+                    null -> "Desconocido"
+                    else -> formattedDate
+                }
+            }
+            
+            grouped.forEach { (dateHeader, txsForDate) ->
+                Text(
+                    text = dateHeader,
+                    style = TextStyle(fontSize = 13.sp, color = ColorSlate),
+                    modifier = Modifier.padding(top = 10.dp, bottom = 4.dp)
+                )
+                txsForDate.forEachIndexed { index, tx ->
+                    TxRow(tx, categoryNames, categoryIcons, isVisible, onTransactionClick)
+                    if (index < txsForDate.size - 1) {
+                        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(ColorHair))
+                    }
                 }
             }
         }
@@ -313,17 +375,17 @@ private fun TransactionsCard(transactions: List<Transaction>, categoryNames: Map
 }
 
 @Composable
-private fun TxRow(tx: Transaction, categoryNames: Map<String, String>, onClick: (String) -> Unit) {
+private fun TxRow(tx: Transaction, categoryNames: Map<String, String>, categoryIcons: Map<String, String>, isVisible: Boolean, onClick: (String) -> Unit) {
     val isInc = tx.type == TransactionType.income
     val isExp = tx.type == TransactionType.expense
     
     val iconColor = if (isInc) ColorMoss else if (isExp) ColorClay else ColorSlate
-    val iconBg = if (isInc) ColorMoss.copy(alpha = 0.16f) else if (isExp) ColorClay.copy(alpha = 0.16f) else ColorSlate.copy(alpha = 0.16f)
-    val iconText = if (isInc) "↑" else if (isExp) "↓" else "↔"
-    val amountColor = if (isInc) ColorMoss else if (isExp) ColorClay else ColorBone
+    val amountColor = if (isInc) ColorMoss else ColorBone
     val prefix = if (isInc) "+" else if (isExp) "−" else ""
 
-    val defaultTitle = tx.categoryId?.let { categoryNames[it] } ?: if (tx.type == TransactionType.transfer) "Transferencia" else "Movimiento"
+    val catName = tx.categoryId?.let { categoryNames[it] } ?: tx.type.label()
+    val catIconStr = tx.categoryId?.let { categoryIcons[it] }
+    val defaultTitle = tx.categoryId?.let { categoryNames[it] } ?: "Movimiento"
     val displayTitle = tx.merchant?.takeIf { it.isNotBlank() } ?: defaultTitle
 
     Row(
@@ -332,30 +394,49 @@ private fun TxRow(tx: Transaction, categoryNames: Map<String, String>, onClick: 
             .padding(vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(38.dp)
-                .clip(RoundedCornerShape(11.dp))
-                .background(iconBg),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(text = iconText, color = iconColor, fontSize = 15.sp)
+        if (catIconStr != null && catIconStr.isNotBlank()) {
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(androidx.compose.foundation.shape.CircleShape)
+                    .background(Color(0xFF162B28)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = catIconStr.toIcon(),
+                    contentDescription = null,
+                    tint = ColorMoss,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        } else {
+            val iconBg = if (isInc) ColorMoss.copy(alpha = 0.16f) else if (isExp) ColorClay.copy(alpha = 0.16f) else ColorSlate.copy(alpha = 0.16f)
+            val iconText = if (isInc) "↑" else if (isExp) "↓" else "↔"
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(RoundedCornerShape(11.dp))
+                    .background(iconBg),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(text = iconText, color = iconColor, fontSize = 15.sp)
+            }
         }
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(text = displayTitle, style = TextStyle(fontSize = 13.5.sp, fontWeight = FontWeight.Medium, color = ColorBone), maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(text = tx.type.label(), style = TextStyle(fontSize = 11.5.sp, color = ColorSlate), modifier = Modifier.padding(top = 1.dp))
+            Text(text = catName, style = TextStyle(fontSize = 11.5.sp, color = ColorSlate), modifier = Modifier.padding(top = 1.dp))
         }
         Spacer(Modifier.width(12.dp))
         Text(
-            text = "$prefix${formatMoney(tx.amount)}",
+            text = if (isVisible) "$prefix${formatMoney(tx.amount)}" else "$prefix ••••",
             style = TextStyle(fontFamily = IbmPlexMono, fontWeight = FontWeight.Medium, fontSize = 13.5.sp, color = amountColor),
             maxLines = 1
         )
     }
 }
 
-private fun TransactionType.label() = when (this) { TransactionType.income -> "Ingreso"; TransactionType.expense -> "Gasto"; TransactionType.transfer -> "Transferencia" }
+private fun TransactionType.label() = when (this) { TransactionType.income -> "Ingreso"; TransactionType.expense -> "Gasto" }
 
 private fun formatMoneyNoSymbol(value: Double): String = NumberFormat.getNumberInstance(
     Locale.Builder().setLanguage("es").setRegion("CO").build()

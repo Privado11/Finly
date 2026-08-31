@@ -15,7 +15,7 @@ object CanalesNotificacion {
         val manager = context.getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(
             NotificationChannel(MOVIMIENTOS, "Movimientos registrados", NotificationManager.IMPORTANCE_DEFAULT).apply {
-                description = "Notificaciones cuando se registra un ingreso, egreso o transferencia"
+                description = "Notificaciones cuando se registra un ingreso o egreso"
             }
         )
         manager.createNotificationChannel(

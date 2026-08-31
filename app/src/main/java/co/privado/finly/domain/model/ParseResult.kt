@@ -13,7 +13,7 @@ data class ParseNotificationResponse(
 
 @Serializable
 data class ParseData(
-    val type: String?, // income | expense | transfer | null
+    val type: String?, // income | expense | null
     val amount: Double? = null,
     val currency: String = "COP",
     val merchant: String? = null,

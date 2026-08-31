@@ -18,6 +18,7 @@ import javax.inject.Singleton
 @Serializable
 private data class CategoryPayload(
     @SerialName("user_id") val userId: String,
+    @SerialName("parent_id") val parentId: String?,
     val name: String,
     val icon: String?,
     val color: String?,
@@ -43,9 +44,9 @@ class CategoryRepositoryImpl @Inject constructor(
         categories
     }
 
-    override suspend fun addCategory(name: String, type: CategoryType, icon: String?, color: String?): Result<Category> = runCatching {
+    override suspend fun addCategory(name: String, type: CategoryType, parentId: String?, icon: String?, color: String?): Result<Category> = runCatching {
         val userId = sessionStore.getUserId() ?: throw java.lang.IllegalStateException("Tu sesión expiró. Inicia sesión nuevamente.")
-        val payload = CategoryPayload(userId, name.trim(), icon, color, type)
+        val payload = CategoryPayload(userId, parentId, name.trim(), icon, color, type)
         val newCat = supabase.from("categories").insert(payload) { select() }.decodeSingle<Category>()
         _state.value = null // Invalidate cache
         newCat

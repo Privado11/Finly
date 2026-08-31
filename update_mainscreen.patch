@@ -1,0 +1,30 @@
+--- app/src/main/java/co/privado/finly/ui/navigation/MainScreen.kt
++++ app/src/main/java/co/privado/finly/ui/navigation/MainScreen.kt
+@@ -213,9 +213,9 @@
+             intent.removeExtra("transactionId")
+         }
+         
+-        activity?.intent?.let { handleIntent(it) }
+-        
+         val listener = androidx.core.util.Consumer<android.content.Intent> { handleIntent(it) }
+         (activity as? androidx.activity.ComponentActivity)?.addOnNewIntentListener(listener)
+         
+         onDispose { (activity as? androidx.activity.ComponentActivity)?.removeOnNewIntentListener(listener) }
+     }
+     
+     LaunchedEffect(Unit) {
++        val activity = context as? android.app.Activity
++        activity?.intent?.let { intent ->
++            val destino = intent.getStringExtra("destino")
++            val txId = intent.getStringExtra("transactionId")
++            
++            if (destino == "review") {
++                nav.navigate(Routes.ReviewQueue)
++            } else if (destino == "transaction_detail" && txId != null) {
++                nav.navigate("${Routes.TransactionDetail}/$txId")
++            }
++            
++            intent.removeExtra("destino")
++            intent.removeExtra("transactionId")
++        }
+         launch {

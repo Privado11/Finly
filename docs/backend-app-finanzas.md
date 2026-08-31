@@ -38,11 +38,13 @@ create table public.accounts (
     name text not null,
     type text not null check (type in ('cash','bank','credit_card','digital_wallet')),
     currency text not null default 'COP',
+    opening_balance numeric(14,2) not null default 0,
     active boolean not null default true,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
 ```
+`opening_balance`: saldo con el que arranca la cuenta al crearla — **no es una transacción**, es el punto de partida del cálculo de balance. Editable después desde la app.
 
 ### 2.3 Tabla `categories`
 ```sql
@@ -133,6 +135,46 @@ create table public.llm_usage (
 ```
 
 > Nota de diseño: todos los IDs son UUID (no serial). Todas las tablas incluyen `user_id` desde ya, aunque hoy solo exista un usuario — así RLS queda listo sin refactor futuro.
+
+### 2.8 Vista `account_balances`
+
+Los saldos **no se guardan** en `accounts` — se calculan a partir de las transacciones. Esta vista hace ese cálculo por el usuario, para que el frontend nunca tenga que sumar transacciones a mano.
+
+```sql
+create view public.account_balances
+with (security_invoker = true) as
+select
+    a.id as account_id,
+    a.user_id,
+    a.name,
+    a.type,
+    a.currency,
+    a.active,
+    a.opening_balance,
+    a.opening_balance + coalesce(sum(
+        case
+            when t.source_account_id = a.id and t.type = 'income'   then  t.amount
+            when t.source_account_id = a.id and t.type = 'expense'  then -t.amount
+            when t.source_account_id = a.id and t.type = 'transfer' then -t.amount
+            when t.destination_account_id = a.id and t.type = 'transfer' then t.amount
+            else 0
+        end
+    ), 0) as balance
+from public.accounts a
+left join public.transactions t
+    on t.source_account_id = a.id or t.destination_account_id = a.id
+group by a.id, a.user_id, a.name, a.type, a.currency, a.active, a.opening_balance;
+```
+
+**Lógica del cálculo:**
+- `income` → suma a la cuenta origen
+- `expense` → resta de la cuenta origen
+- `transfer` → resta de la cuenta origen, suma a la cuenta destino
+- Todo parte de `opening_balance`, no de cero
+
+**`security_invoker = true`** es la parte importante: hace que la vista respete el RLS de `accounts` y `transactions` del usuario que consulta — sin esto, una vista corre con los permisos de quien la creó, no del usuario logueado, lo cual sería un hueco de seguridad.
+
+El "Patrimonio total" de la pantalla de Cuentas es simplemente la suma de `balance` de las filas con `active = true` que devuelve esta vista — se calcula en el cliente, no hace falta otra consulta aparte.
 
 ---
 

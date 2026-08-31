@@ -1,6 +1,5 @@
 package co.privado.finly.ui.screens.settings
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.privado.finly.data.local.SessionDataStore
@@ -10,118 +9,83 @@ import co.privado.finly.domain.repository.CategoryRepository
 import co.privado.finly.domain.repository.TransactionRepository
 import co.privado.finly.ui.state.GlobalMessageNotifier
 import dagger.hilt.android.lifecycle.HiltViewModel
-import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 import javax.inject.Inject
-
-@Serializable
-data class UserRow(
-    val id: String,
-    @SerialName("first_name") val firstName: String? = null,
-    @SerialName("last_name") val lastName: String? = null,
-    val email: String? = null
-)
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val authRepository: AuthRepository,
-    private val supabase: SupabaseClient,
-    private val sessionDataStore: SessionDataStore,
-    private val accountRepository: AccountRepository,
-    private val categoryRepository: CategoryRepository,
-    private val transactionRepository: TransactionRepository,
-    private val globalMessageNotifier: GlobalMessageNotifier
+    private val sessionStore: SessionDataStore,
+    private val accountRepo: AccountRepository,
+    private val categoryRepo: CategoryRepository,
+    private val txRepo: TransactionRepository,
+    private val globalMessageNotifier: GlobalMessageNotifier,
+    private val notificadorApp: co.privado.finly.service.NotificadorApp
 ) : ViewModel() {
 
-    val userName: StateFlow<String> = sessionDataStore.userDisplayState
+    val userName: StateFlow<String> = sessionStore.userDisplayState
         .map { it.first }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), sessionDataStore.userDisplayState.value.first)
-
-    val userEmail: StateFlow<String> = sessionDataStore.userDisplayState
+        .stateIn(viewModelScope, SharingStarted.Eagerly, "Usuario")
+        
+    val userEmail: StateFlow<String> = sessionStore.userDisplayState
         .map { it.second }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), sessionDataStore.userDisplayState.value.second)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, "Sin correo")
 
-    val biometricEnabled: StateFlow<Boolean> = sessionDataStore.biometricEnabledState
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), sessionDataStore.biometricEnabledState.value)
+    val biometricEnabled: StateFlow<Boolean> = sessionStore.biometricEnabledState
+    val appNotificationsEnabled: StateFlow<Boolean> = sessionStore.appNotificationsState
 
-    init {
-        fetchFreshData()
+    fun updateName(firstName: String, lastName: String) {
+        viewModelScope.launch {
+            val email = userEmail.value
+            sessionStore.guardarDatosUsuario(firstName, lastName, email)
+            
+            globalMessageNotifier.showMessage("Nombre actualizado exitosamente")
+
+            val currentId = sessionStore.getUserId() ?: authRepository.currentUserId()
+            if (currentId != null) {
+                authRepository.updateUserMetadata(firstName, lastName)
+            }
+        }
     }
 
     fun setBiometricEnabled(enabled: Boolean) {
         viewModelScope.launch {
-            sessionDataStore.setBiometricEnabled(enabled)
-            if (enabled) {
-                globalMessageNotifier.showMessage("Desbloqueo con huella activado")
-            } else {
-                globalMessageNotifier.showMessage("Desbloqueo con huella desactivado")
-            }
+            sessionStore.setBiometricEnabled(enabled)
+            val estado = if (enabled) "activado" else "desactivado"
+            globalMessageNotifier.showMessage("Desbloqueo con huella $estado")
         }
     }
 
-    private fun fetchFreshData() {
+    fun testNotification() {
         viewModelScope.launch {
-            try {
-                val userId = sessionDataStore.getUserId() ?: return@launch
-                
-                val userRow = supabase.postgrest["users"]
-                    .select {
-                        filter { eq("id", userId) }
-                    }.decodeSingleOrNull<UserRow>()
-                
-                if (userRow != null) {
-                    sessionDataStore.guardarDatosUsuario(
-                        firstName = userRow.firstName.orEmpty(),
-                        lastName = userRow.lastName.orEmpty(),
-                        email = userRow.email.orEmpty()
-                    )
-                }
-            } catch (e: Exception) {
-                Log.e("SettingsViewModel", "Error fetching user", e)
-            }
+            notificadorApp.ingresoRegistrado("15,000", "Nómina", "test-tx-id")
+            kotlinx.coroutines.delay(500)
+            notificadorApp.egresoRegistrado("2,500", "Supermercado", "test-tx-id-2")
+            kotlinx.coroutines.delay(500)
+            notificadorApp.requiereVerificacionManual()
+            kotlinx.coroutines.delay(500)
+            notificadorApp.guardadoEnColaOffline()
         }
     }
 
-    fun updateName(firstName: String, lastName: String) {
+    fun setAppNotificationsEnabled(enabled: Boolean) {
         viewModelScope.launch {
-            try {
-                val userId = sessionDataStore.getUserId() ?: return@launch
-                
-                // Optimistic UI update (saves to local first)
-                val currentEmail = sessionDataStore.userDisplayState.value.second
-                sessionDataStore.guardarDatosUsuario(firstName, lastName, currentEmail)
-                
-                // Send to Supabase
-                supabase.postgrest["users"].update(
-                    {
-                        set("first_name", firstName)
-                        set("last_name", lastName)
-                    }
-                ) {
-                    filter { eq("id", userId) }
-                }
-                globalMessageNotifier.showMessage("Nombre actualizado correctamente")
-            } catch (e: Exception) {
-                Log.e("SettingsViewModel", "Error updating name", e)
-                globalMessageNotifier.showMessage("Error al actualizar el nombre")
-            }
+            sessionStore.setAppNotificationsEnabled(enabled)
+            val estado = if (enabled) "activadas" else "desactivadas"
+            globalMessageNotifier.showMessage("Notificaciones de la app $estado")
         }
     }
 
     fun logout() {
         viewModelScope.launch {
+            accountRepo.clearCache()
+            categoryRepo.clearCache()
+            txRepo.clearCache()
             authRepository.signOut()
-            sessionDataStore.limpiarSesion()
-            accountRepository.clearCache()
-            categoryRepository.clearCache()
-            transactionRepository.clearCache()
         }
     }
 }

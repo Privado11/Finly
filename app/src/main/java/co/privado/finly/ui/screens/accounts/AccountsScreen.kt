@@ -47,9 +47,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import co.privado.finly.domain.model.Account
+import co.privado.finly.domain.model.AccountBalance
 import co.privado.finly.domain.model.AccountType
 import co.privado.finly.ui.navigation.FinlyFab
+import java.text.NumberFormat
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,10 +71,21 @@ fun AccountsScreen(viewModel: AccountsViewModel = hiltViewModel()) {
                 .padding(padding)
         ) {
             Text(
-                text = "CUENTAS",
+                text = "PATRIMONIO TOTAL",
                 style = TypographyEyebrow,
                 color = ColorBrass,
                 modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 4.dp, top = 24.dp)
+            )
+            val totalBalance = uiState.accounts.filter { it.active }.sumOf { it.balance }
+            val formattedTotal = NumberFormat.getCurrencyInstance(Locale("es", "CO")).apply {
+                maximumFractionDigits = 0
+            }.format(totalBalance)
+            Text(
+                text = formattedTotal,
+                fontFamily = Fraunces,
+                fontSize = 32.sp,
+                color = ColorBone,
+                modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 16.dp)
             )
             
             when {
@@ -84,7 +97,11 @@ fun AccountsScreen(viewModel: AccountsViewModel = hiltViewModel()) {
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     items(uiState.accounts, key = { it.id }) { account -> 
-                        AccountCard(account, onDelete = { viewModel.showDeleteDialog(account) }) 
+                        AccountCard(
+                            account = account, 
+                            onEdit = { viewModel.showEditDialog(account) },
+                            onDelete = { viewModel.showDeleteDialog(account) }
+                        ) 
                     }
                 }
             }
@@ -93,8 +110,9 @@ fun AccountsScreen(viewModel: AccountsViewModel = hiltViewModel()) {
     if (uiState.showCreateDialog) {
         CreateAccountDialog(
             isSaving = uiState.isSaving,
+            accountToEdit = uiState.accountToEdit,
             onDismiss = { if (!uiState.isSaving) viewModel.showCreateDialog(false) },
-            onCreate = viewModel::createAccount
+            onSave = viewModel::saveAccount
         )
     }
     uiState.accountToDelete?.let { account ->
@@ -156,8 +174,12 @@ private fun EmptyAccounts(modifier: Modifier, onCreate: () -> Unit) {
 }
 
 @Composable
-private fun AccountCard(account: Account, onDelete: () -> Unit) {
-    Surface(shape = RoundedCornerShape(20.dp), color = ColorSurface) {
+private fun AccountCard(account: AccountBalance, onEdit: () -> Unit, onDelete: () -> Unit) {
+    val formattedBalance = NumberFormat.getCurrencyInstance(Locale("es", "CO")).apply {
+        maximumFractionDigits = 0
+    }.format(account.balance)
+
+    Surface(shape = RoundedCornerShape(20.dp), color = ColorSurface, onClick = onEdit) {
         Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Surface(shape = RoundedCornerShape(14.dp), color = ColorBrass.copy(alpha = 0.15f), modifier = Modifier.size(48.dp)) {
                 Box(contentAlignment = Alignment.Center) {
@@ -170,7 +192,10 @@ private fun AccountCard(account: Account, onDelete: () -> Unit) {
                 Spacer(Modifier.height(2.dp))
                 Text(account.type.label(), fontFamily = Inter, fontSize = 13.sp, color = ColorSlate)
             }
-            Text(account.currency, fontFamily = Inter, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = ColorBrass)
+            Column(horizontalAlignment = Alignment.End) {
+                Text(formattedBalance, fontFamily = Inter, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = ColorBrass)
+                Text(account.currency, fontFamily = Inter, fontSize = 12.sp, color = ColorSlate)
+            }
             Spacer(Modifier.width(8.dp))
             androidx.compose.material3.IconButton(onClick = onDelete) {
                 Icon(Icons.Filled.Delete, contentDescription = "Eliminar", tint = ColorBrass)
@@ -180,20 +205,26 @@ private fun AccountCard(account: Account, onDelete: () -> Unit) {
 }
 
 @Composable
-private fun CreateAccountDialog(isSaving: Boolean, onDismiss: () -> Unit, onCreate: (String, AccountType) -> Unit) {
-    var name by rememberSaveable { mutableStateOf("") }
-    var type by rememberSaveable { mutableStateOf(AccountType.bank) }
+private fun CreateAccountDialog(isSaving: Boolean, accountToEdit: AccountBalance?, onDismiss: () -> Unit, onSave: (String?, String, AccountType, Double) -> Unit) {
+    var name by rememberSaveable { mutableStateOf(accountToEdit?.name ?: "") }
+    var type by rememberSaveable { mutableStateOf(accountToEdit?.type ?: AccountType.bank) }
+    var openingBalanceStr by rememberSaveable { mutableStateOf(accountToEdit?.openingBalance?.toLong()?.toString() ?: "") }
+    
+    val title = if (accountToEdit == null) "Nueva cuenta" else "Editar cuenta"
+    
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = ColorSurface,
         titleContentColor = ColorBone,
         textContentColor = ColorSlate,
         shape = RoundedCornerShape(24.dp),
-        title = { Text("Nueva cuenta", fontFamily = Fraunces) },
+        title = { Text(title, fontFamily = Fraunces) },
         text = {
             Column {
-                Text("Añade los lugares donde guardas o manejas tu dinero.", fontFamily = Inter)
-                Spacer(Modifier.height(20.dp))
+                if (accountToEdit == null) {
+                    Text("Añade los lugares donde guardas o manejas tu dinero.", fontFamily = Inter)
+                    Spacer(Modifier.height(20.dp))
+                }
                 OutlinedTextField(
                     value = name, 
                     onValueChange = { name = it }, 
@@ -211,6 +242,44 @@ private fun CreateAccountDialog(isSaving: Boolean, onDismiss: () -> Unit, onCrea
                         cursorColor = ColorBrass
                     )
                 )
+                Spacer(Modifier.height(16.dp))
+                OutlinedTextField(
+                    value = openingBalanceStr,
+                    onValueChange = { newValue -> 
+                        if (type == AccountType.credit_card) {
+                            if (newValue.isEmpty() || newValue == "-" || newValue.matches(Regex("^-?\\d*$"))) {
+                                openingBalanceStr = newValue
+                            }
+                        } else {
+                            if (newValue.isEmpty() || newValue.matches(Regex("^\\d*$"))) {
+                                openingBalanceStr = newValue
+                            }
+                        }
+                    },
+                    label = { Text("Saldo inicial", fontFamily = Inter) },
+                    singleLine = true,
+                    enabled = !isSaving,
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = ColorBrass,
+                        focusedLabelColor = ColorBrass,
+                        unfocusedBorderColor = ColorHair,
+                        unfocusedLabelColor = ColorSlate,
+                        focusedTextColor = ColorBone,
+                        unfocusedTextColor = ColorBone,
+                        cursorColor = ColorBrass
+                    )
+                )
+                if (type == AccountType.credit_card) {
+                    Text(
+                        text = "Ingresa un valor negativo si ya tienes deuda en esta tarjeta.",
+                        fontFamily = Inter,
+                        fontSize = 12.sp,
+                        color = ColorSlate,
+                        modifier = Modifier.padding(top = 4.dp, start = 4.dp)
+                    )
+                }
                 Spacer(Modifier.height(20.dp))
                 Text("Tipo de cuenta", fontFamily = Inter, fontWeight = FontWeight.SemiBold, color = ColorBone)
                 Spacer(Modifier.height(6.dp))
@@ -221,7 +290,12 @@ private fun CreateAccountDialog(isSaving: Boolean, onDismiss: () -> Unit, onCrea
                     ) {
                         RadioButton(
                             selected = type == option, 
-                            onClick = { type = option }, 
+                            onClick = { 
+                                type = option 
+                                if (option != AccountType.credit_card && openingBalanceStr.startsWith("-")) {
+                                    openingBalanceStr = "0"
+                                }
+                            }, 
                             enabled = !isSaving,
                             colors = RadioButtonDefaults.colors(selectedColor = ColorBrass, unselectedColor = ColorSlate)
                         )
@@ -238,7 +312,7 @@ private fun CreateAccountDialog(isSaving: Boolean, onDismiss: () -> Unit, onCrea
         },
         confirmButton = {
             Button(
-                onClick = { onCreate(name, type) }, 
+                onClick = { onSave(accountToEdit?.id, name, type, openingBalanceStr.toDoubleOrNull() ?: 0.0) }, 
                 enabled = !isSaving,
                 colors = ButtonDefaults.buttonColors(containerColor = ColorBrass, contentColor = ColorOnBrass),
                 shape = RoundedCornerShape(12.dp)

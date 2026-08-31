@@ -90,11 +90,32 @@ class AuthRepositoryImpl @Inject constructor(
     @OptIn(ExperimentalTime::class)
     private suspend fun guardarSesionActual() {
         val session = supabase.auth.currentSessionOrNull() ?: return
+        val user = session.user
         sessionStore.guardarSesion(
             accessToken = session.accessToken,
             refreshToken = session.refreshToken,
             expiresAtSeconds = session.expiresAt?.epochSeconds ?: 0,
-            userId = supabase.auth.currentUserOrNull()?.id
+            userId = user?.id
         )
+        if (user != null) {
+            val email = user.email ?: ""
+            val md = user.userMetadata
+            val firstName = md?.get("first_name")?.toString()?.trim('"') 
+                ?: md?.get("name")?.toString()?.trim('"')?.split(" ")?.firstOrNull() ?: ""
+            val lastName = md?.get("last_name")?.toString()?.trim('"')
+                ?: md?.get("name")?.toString()?.trim('"')?.split(" ")?.drop(1)?.joinToString(" ") ?: ""
+            sessionStore.guardarDatosUsuario(firstName, lastName, email)
+        }
+    }
+
+    override suspend fun updateUserMetadata(firstName: String, lastName: String) {
+        runCatching {
+            supabase.auth.updateUser {
+                data = kotlinx.serialization.json.buildJsonObject {
+                    put("first_name", firstName)
+                    put("last_name", lastName)
+                }
+            }
+        }
     }
 }

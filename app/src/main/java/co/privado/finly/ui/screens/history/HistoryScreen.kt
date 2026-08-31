@@ -25,6 +25,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import co.privado.finly.domain.model.Transaction
 import co.privado.finly.domain.model.TransactionType
 import co.privado.finly.ui.theme.*
+import co.privado.finly.util.toIcon
+import androidx.compose.material3.Icon
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -83,9 +85,8 @@ fun HistoryScreen(onTransactionClick: (String) -> Unit = {}, viewModel: HistoryV
                         ) {
                             val options = listOf(
                                 TransactionFilter.ALL to "Todos",
-                                TransactionFilter.EXPENSE to "Gastos",
                                 TransactionFilter.INCOME to "Ingresos",
-                                TransactionFilter.TRANSFER to "Transferencias"
+                                TransactionFilter.EXPENSE to "Gastos"
                             )
                             options.forEach { (filterOption, label) ->
                                 val selected = state.filter == filterOption
@@ -133,15 +134,31 @@ fun HistoryScreen(onTransactionClick: (String) -> Unit = {}, viewModel: HistoryV
                     state.groupedTransactions.forEach { (dateHeader, transactions) ->
                         item {
                             Column(modifier = Modifier.padding(bottom = 16.dp)) {
-                                Text(
-                                    text = dateHeader,
-                                    style = TextStyle(
-                                        fontSize = 13.sp,
-                                        color = ColorSlate
-                                    ),
-                                    modifier = Modifier.padding(start = 12.dp, bottom = 8.dp)
-                                )
-                                TransactionsGroupCard(transactions, state.categoryNames, onTransactionClick)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = dateHeader,
+                                        style = TextStyle(
+                                            fontSize = 13.sp,
+                                            color = ColorSlate
+                                        )
+                                    )
+                                    val dailyTotal = transactions.sumOf { if (it.type == TransactionType.income) it.amount else -it.amount }
+                                    val prefix = if (dailyTotal > 0) "+" else if (dailyTotal < 0) "−" else ""
+                                    val color = if (dailyTotal > 0) ColorMoss else ColorSlate
+                                    Text(
+                                        text = "$prefix${formatMoney(kotlin.math.abs(dailyTotal))}",
+                                        style = TextStyle(
+                                            fontFamily = IbmPlexMono,
+                                            fontSize = 13.sp,
+                                            color = color
+                                        )
+                                    )
+                                }
+                                TransactionsGroupCard(transactions, state.categoryNames, state.categoryIcons, onTransactionClick)
                             }
                         }
                     }
@@ -152,7 +169,7 @@ fun HistoryScreen(onTransactionClick: (String) -> Unit = {}, viewModel: HistoryV
 }
 
 @Composable
-private fun TransactionsGroupCard(transactions: List<Transaction>, categoryNames: Map<String, String>, onTransactionClick: (String) -> Unit) {
+private fun TransactionsGroupCard(transactions: List<Transaction>, categoryNames: Map<String, String>, categoryIcons: Map<String, String>, onTransactionClick: (String) -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -163,7 +180,7 @@ private fun TransactionsGroupCard(transactions: List<Transaction>, categoryNames
     ) {
         Column {
             transactions.forEachIndexed { index, tx ->
-                TxRow(tx, categoryNames, onTransactionClick)
+                TxRow(tx, categoryNames, categoryIcons, onTransactionClick)
                 if (index < transactions.size - 1) {
                     Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(ColorHair))
                 }
@@ -173,17 +190,17 @@ private fun TransactionsGroupCard(transactions: List<Transaction>, categoryNames
 }
 
 @Composable
-private fun TxRow(tx: Transaction, categoryNames: Map<String, String>, onClick: (String) -> Unit) {
+private fun TxRow(tx: Transaction, categoryNames: Map<String, String>, categoryIcons: Map<String, String>, onClick: (String) -> Unit) {
     val isInc = tx.type == TransactionType.income
     val isExp = tx.type == TransactionType.expense
     
     val iconColor = if (isInc) ColorMoss else if (isExp) ColorClay else ColorSlate
-    val iconBg = if (isInc) ColorMoss.copy(alpha = 0.16f) else if (isExp) ColorClay.copy(alpha = 0.16f) else ColorSlate.copy(alpha = 0.16f)
-    val iconText = if (isInc) "↑" else if (isExp) "↓" else "↔"
-    val amountColor = if (isInc) ColorMoss else if (isExp) ColorClay else ColorBone
+    val amountColor = if (isInc) ColorMoss else ColorBone
     val prefix = if (isInc) "+" else if (isExp) "−" else ""
 
-    val defaultTitle = tx.categoryId?.let { categoryNames[it] } ?: if (tx.type == TransactionType.transfer) "Transferencia" else "Movimiento"
+    val catName = tx.categoryId?.let { categoryNames[it] } ?: tx.type.label()
+    val catIconStr = tx.categoryId?.let { categoryIcons[it] }
+    val defaultTitle = tx.categoryId?.let { categoryNames[it] } ?: "Movimiento"
     val displayTitle = tx.merchant?.takeIf { it.isNotBlank() } ?: defaultTitle
 
     Row(
@@ -192,19 +209,38 @@ private fun TxRow(tx: Transaction, categoryNames: Map<String, String>, onClick: 
             .padding(vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(38.dp)
-                .clip(RoundedCornerShape(11.dp))
-                .background(iconBg),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(text = iconText, color = iconColor, fontSize = 15.sp)
+        if (catIconStr != null && catIconStr.isNotBlank()) {
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(androidx.compose.foundation.shape.CircleShape)
+                    .background(Color(0xFF162B28)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = catIconStr.toIcon(),
+                    contentDescription = null,
+                    tint = ColorMoss,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        } else {
+            val iconBg = if (isInc) ColorMoss.copy(alpha = 0.16f) else if (isExp) ColorClay.copy(alpha = 0.16f) else ColorSlate.copy(alpha = 0.16f)
+            val iconText = if (isInc) "↑" else if (isExp) "↓" else "↔"
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(RoundedCornerShape(11.dp))
+                    .background(iconBg),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(text = iconText, color = iconColor, fontSize = 15.sp)
+            }
         }
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(text = displayTitle, style = TextStyle(fontSize = 13.5.sp, fontWeight = FontWeight.Medium, color = ColorBone), maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(text = tx.type.label(), style = TextStyle(fontSize = 11.5.sp, color = ColorSlate), modifier = Modifier.padding(top = 1.dp))
+            Text(text = catName, style = TextStyle(fontSize = 11.5.sp, color = ColorSlate), modifier = Modifier.padding(top = 1.dp))
         }
         Spacer(Modifier.width(12.dp))
         Text(
@@ -218,7 +254,6 @@ private fun TxRow(tx: Transaction, categoryNames: Map<String, String>, onClick: 
 private fun TransactionType.label() = when (this) { 
     TransactionType.income -> "Ingreso"
     TransactionType.expense -> "Gasto"
-    TransactionType.transfer -> "Transferencia" 
 }
 
 private fun formatMoney(value: Double): String = "$" + NumberFormat.getNumberInstance(

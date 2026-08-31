@@ -3,27 +3,42 @@ package co.privado.finly.ui.screens.review
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import co.privado.finly.domain.model.AccountBalance
+import co.privado.finly.domain.model.Category
 import co.privado.finly.domain.model.ReviewQueueItem
+import co.privado.finly.domain.model.TransactionType
+import co.privado.finly.ui.screens.transactions.FinlyPickerField
+import co.privado.finly.ui.screens.transactions.FinlyTextField
 import co.privado.finly.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ClassifyDialog(item: ReviewQueueItem, onDismiss: () -> Unit, onSave: () -> Unit) {
-    // Valores falsos por ahora, pero extraídos del paquete en la vida real
-    val amount = "0.00" 
-    val desc = "Descripción del movimiento"
+fun ClassifyDialog(
+    item: ReviewQueueItem,
+    accounts: List<AccountBalance>,
+    categories: List<Category>,
+    onDismiss: () -> Unit,
+    onSave: (Double, String, String?, TransactionType, String?) -> Unit
+) {
+    var amount by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
     
-    var category by remember { mutableStateOf("") }
+    var selectedAccount by remember { mutableStateOf<AccountBalance?>(null) }
+    var selectedCategory by remember { mutableStateOf<Category?>(null) }
+    
+    var showAccountPicker by remember { mutableStateOf(false) }
+    var showCategoryPicker by remember { mutableStateOf(false) }
+
+    val isExpense = true 
     
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -37,86 +52,58 @@ fun ClassifyDialog(item: ReviewQueueItem, onDismiss: () -> Unit, onSave: () -> U
                 }
                 Spacer(Modifier.height(20.dp))
                 
-                OutlinedTextField(
+                FinlyTextField(
+                    label = "Monto (COP)",
                     value = amount,
-                    onValueChange = {},
-                    label = { Text("Monto", fontFamily = Inter) },
-                    readOnly = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = ColorBrass,
-                        focusedLabelColor = ColorBrass,
-                        unfocusedBorderColor = ColorHair,
-                        unfocusedLabelColor = ColorSlate,
-                        focusedTextColor = ColorBone,
-                        unfocusedTextColor = ColorBone
-                    )
+                    onValueChange = { if (it.isEmpty() || it.toDoubleOrNull() != null) amount = it },
+                    placeholder = "$0",
+                    isBig = true,
+                    keyboardType = KeyboardType.Decimal
                 )
                 
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(12.dp))
                 
-                OutlinedTextField(
-                    value = desc,
-                    onValueChange = {},
-                    label = { Text("Descripción", fontFamily = Inter) },
-                    readOnly = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = ColorBrass,
-                        focusedLabelColor = ColorBrass,
-                        unfocusedBorderColor = ColorHair,
-                        unfocusedLabelColor = ColorSlate,
-                        focusedTextColor = ColorBone,
-                        unfocusedTextColor = ColorBone
-                    )
+                FinlyTextField(
+                    label = "Comercio / Descripción",
+                    value = description,
+                    onValueChange = { description = it },
+                    placeholder = "",
+                    isBig = false,
+                    keyboardType = KeyboardType.Text
                 )
                 
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(12.dp))
                 
-                OutlinedTextField(
-                    value = item.packageName.replace("com.", "").capitalize(),
-                    onValueChange = {},
-                    label = { Text("Cuenta sugerida", fontFamily = Inter) },
-                    readOnly = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = ColorBrass,
-                        focusedLabelColor = ColorBrass,
-                        unfocusedBorderColor = ColorHair,
-                        unfocusedLabelColor = ColorSlate,
-                        focusedTextColor = ColorBone,
-                        unfocusedTextColor = ColorBone
-                    )
+                FinlyPickerField(
+                    label = "Cuenta",
+                    value = selectedAccount?.name ?: "Seleccionar cuenta",
+                    isPlaceholder = selectedAccount == null,
+                    onClick = { showAccountPicker = true }
                 )
                 
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(4.dp))
                 
-                OutlinedTextField(
-                    value = category,
-                    onValueChange = { category = it },
-                    label = { Text("Categoría (Falta)", fontFamily = Inter) },
-                    placeholder = { Text("Ej. Comida, Transporte", fontFamily = Inter) },
-                    trailingIcon = { Icon(Icons.Filled.ArrowDropDown, null, tint = ColorSlate) },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = ColorBrass,
-                        focusedLabelColor = ColorBrass,
-                        unfocusedBorderColor = ColorError,
-                        unfocusedLabelColor = ColorError,
-                        focusedTextColor = ColorBone,
-                        unfocusedTextColor = ColorBone,
-                        cursorColor = ColorBrass
-                    )
+                FinlyPickerField(
+                    label = "Categoría",
+                    value = selectedCategory?.name ?: "Sin categoría",
+                    isPlaceholder = selectedCategory == null,
+                    onClick = { showCategoryPicker = true }
                 )
             }
         },
         confirmButton = {
             Button(
-                onClick = onSave,
-                colors = ButtonDefaults.buttonColors(containerColor = ColorBrass, contentColor = ColorOnBrass),
+                onClick = {
+                    val parsedAmount = amount.toDoubleOrNull()
+                    if (parsedAmount != null && selectedAccount != null) {
+                        onSave(parsedAmount, selectedAccount!!.id!!, selectedCategory?.id, TransactionType.expense, description.takeIf { it.isNotBlank() })
+                    }
+                },
+                enabled = amount.isNotBlank() && selectedAccount != null,
+                colors = ButtonDefaults.buttonColors(containerColor = ColorBrass, contentColor = ColorOnBrass, disabledContainerColor = ColorHair, disabledContentColor = ColorSlate),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Guardar movimiento", fontFamily = Inter, fontWeight = FontWeight.Bold)
+                Text("Guardar", fontFamily = Inter, fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
@@ -125,4 +112,35 @@ fun ClassifyDialog(item: ReviewQueueItem, onDismiss: () -> Unit, onSave: () -> U
             }
         }
     )
+
+    if (showAccountPicker) {
+        AlertDialog(
+            onDismissRequest = { showAccountPicker = false }, 
+            title = { Text("Selecciona una cuenta") }, 
+            text = { 
+                Column { 
+                    accounts.forEach { account ->
+                        TextButton(onClick = { selectedAccount = account; showAccountPicker = false }, modifier = Modifier.fillMaxWidth()) { Text(account.name) } 
+                    } 
+                } 
+            }, 
+            confirmButton = { TextButton(onClick = { showAccountPicker = false }) { Text("Cancelar") } }
+        )
+    }
+
+    if (showCategoryPicker) {
+        AlertDialog(
+            onDismissRequest = { showCategoryPicker = false }, 
+            title = { Text("Selecciona una categoría") }, 
+            text = { 
+                Column { 
+                    TextButton(onClick = { selectedCategory = null; showCategoryPicker = false }, modifier = Modifier.fillMaxWidth()) { Text("Sin categoría") }
+                    categories.forEach { cat ->
+                        TextButton(onClick = { selectedCategory = cat; showCategoryPicker = false }, modifier = Modifier.fillMaxWidth()) { Text(cat.name) } 
+                    } 
+                } 
+            }, 
+            confirmButton = { TextButton(onClick = { showCategoryPicker = false }) { Text("Cancelar") } }
+        )
+    }
 }

@@ -36,6 +36,7 @@ class ProcesadorNotificaciones @Inject constructor(
     private val supabase: SupabaseClient,
     private val transactionRepository: TransactionRepository,
     private val accountRepository: AccountRepository,
+    private val authRepository: co.privado.finly.domain.repository.AuthRepository,
     private val notificador: NotificadorApp
 ) {
     private val json = Json { ignoreUnknownKeys = true }
@@ -43,6 +44,9 @@ class ProcesadorNotificaciones @Inject constructor(
     suspend fun procesar(packageName: String, texto: String): Boolean {
         return try {
             Log.d(TAG, "Procesando notificación de $packageName: ${texto.take(80)}...")
+
+            // Restaurar sesión de Supabase si fue destruida (el servicio corre en segundo plano)
+            authRepository.isSessionValid()
 
             val body = buildJsonObject {
                 put("package_name", packageName)
@@ -69,13 +73,20 @@ class ProcesadorNotificaciones @Inject constructor(
             val data = response.data
             // Validación obligatoria §5.4 backend
             if (data.confidence == "low") return manejarFallback(packageName, texto, "low_confidence")
-            if (data.type !in setOf("income", "expense", "transfer")) return manejarFallback(packageName, texto, "invalid_type")
+            if (data.type !in setOf("income", "expense")) return manejarFallback(packageName, texto, "invalid_type")
             val amount = data.amount ?: return manejarFallback(packageName, texto, "missing_amount")
             if (amount < 0) return manejarFallback(packageName, texto, "negative_amount")
 
-            // Obtener la primera cuenta activa como source account
+            // Obtener la cuenta que coincida con la sugerencia de Gemini o el nombre del paquete
             val accounts = accountRepository.getAccounts().getOrDefault(emptyList())
-            val sourceAccount = accounts.firstOrNull()
+            val suggested = data.suggestedDestinationAccount
+            
+            val sourceAccount = accounts.firstOrNull { acc ->
+                suggested != null && acc.name.contains(suggested, ignoreCase = true)
+            } ?: accounts.firstOrNull { acc ->
+                packageName.lowercase().contains(acc.name.lowercase())
+            } ?: accounts.firstOrNull()
+
             if (sourceAccount == null) {
                 Log.w(TAG, "No hay cuentas registradas — no se puede guardar la transacción")
                 return manejarFallback(packageName, texto, "no_accounts")
@@ -85,15 +96,14 @@ class ProcesadorNotificaciones @Inject constructor(
             val transactionType = when (data.type) {
                 "income" -> TransactionType.income
                 "expense" -> TransactionType.expense
-                "transfer" -> TransactionType.transfer
                 else -> TransactionType.expense
             }
 
-            // Deduplicación: verificar si ya existe una transacción manual similar
+            // Deduplicación: si hay otra transacción del mismo monto en la misma cuenta en los últimos 10 min, enviar a revisión manual
             val isDuplicate = transactionRepository.existsDuplicate(amount, sourceAccount.id!!)
             if (isDuplicate) {
-                Log.d(TAG, "Posible duplicado detectado, descartando")
-                return true // No es un error, simplemente ya existe
+                Log.d(TAG, "Posible duplicado detectado, enviando a review_queue")
+                return manejarFallback(packageName, texto, "posible_duplicado", esDuplicado = true)
             }
 
             // GUARDAR la transacción en Supabase
@@ -110,12 +120,11 @@ class ProcesadorNotificaciones @Inject constructor(
             )
 
             val result = transactionRepository.addTransaction(transaction)
-            result.onSuccess {
-                Log.d(TAG, "Transacción guardada exitosamente: ${it.id}")
+            result.onSuccess { tx ->
+                Log.d(TAG, "Transacción guardada exitosamente: ${tx.id}")
                 when (data.type) {
-                    "income" -> notificador.ingresoRegistrado(amount.toString(), data.merchant)
-                    "expense" -> notificador.egresoRegistrado(amount.toString(), data.merchant)
-                    "transfer" -> notificador.transferenciaRegistrada(amount.toString())
+                    "income" -> notificador.ingresoRegistrado(amount.toString(), data.merchant, tx.id!!)
+                    "expense" -> notificador.egresoRegistrado(amount.toString(), data.merchant, tx.id!!)
                 }
             }.onFailure {
                 Log.e(TAG, "Error guardando transacción: ${it.message}")
@@ -130,16 +139,28 @@ class ProcesadorNotificaciones @Inject constructor(
         }
     }
 
-    private suspend fun manejarFallback(packageName: String, texto: String, reason: String): Boolean {
+    private suspend fun manejarFallback(packageName: String, texto: String, reason: String, esDuplicado: Boolean = false): Boolean {
         Log.w(TAG, "Fallback → review_queue: $reason")
         try {
+            val userId = authRepository.currentUserId()
             supabase.from("review_queue").insert(
-                ReviewQueueItem(packageName = packageName, originalText = texto, failureReason = reason)
+                ReviewQueueItem(
+                    userId = userId,
+                    packageName = packageName, 
+                    originalText = texto, 
+                    failureReason = reason
+                )
             )
         } catch (e: Exception) {
             Log.e(TAG, "Error insertando en review_queue: ${e.message}")
         }
-        notificador.requiereVerificacionManual()
+        
+        if (esDuplicado) {
+            notificador.posibleDuplicado()
+        } else {
+            notificador.requiereVerificacionManual()
+        }
+        
         return false
     }
 }

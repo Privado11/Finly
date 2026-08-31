@@ -10,6 +10,7 @@ import co.privado.finly.domain.repository.TransactionRepository
 import co.privado.finly.ui.state.TransactionUpdateNotifier
 import dagger.hilt.android.lifecycle.HiltViewModel
 import co.privado.finly.domain.repository.AccountRepository
+import co.privado.finly.data.local.SessionDataStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,7 +33,8 @@ data class HomeUiState(
     val recentTransactions: List<Transaction> = emptyList(),
     val expenseSlices: List<ExpenseSlice> = emptyList(),
     val weeklyExpenses: List<DailyExpense> = emptyList(),
-    val categoryNames: Map<String, String> = emptyMap()
+    val categoryNames: Map<String, String> = emptyMap(),
+    val categoryIcons: Map<String, String> = emptyMap()
 )
 
 @HiltViewModel
@@ -40,25 +42,44 @@ class HomeViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val categoryRepository: CategoryRepository,
     private val accountRepository: AccountRepository,
-    private val transactionUpdateNotifier: TransactionUpdateNotifier
+    private val transactionUpdateNotifier: TransactionUpdateNotifier,
+    private val sessionDataStore: SessionDataStore
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
     private var transactionsCache: List<Transaction> = emptyList()
     private var categoriesCache: List<Category> = emptyList()
+    private var accountsCache: List<co.privado.finly.domain.model.AccountBalance> = emptyList()
+
+    val isBalancesVisible: StateFlow<Boolean> = sessionDataStore.balancesVisibleState
+    
+    fun toggleBalancesVisibility() = viewModelScope.launch {
+        sessionDataStore.setBalancesVisible(!sessionDataStore.balancesVisibleState.value)
+    }
 
     init {
         refresh()
         viewModelScope.launch {
             transactionUpdateNotifier.created.collect { transaction ->
-                transactionsCache = (transactionsCache + transaction).distinctBy { it.id }
-                _uiState.value = buildState(transactionsCache, categoriesCache)
+                transactionsCache = transactionsCache.filter { it.id != transaction.id } + transaction
+                _uiState.value = buildState(transactionsCache, categoriesCache, accountsCache)
             }
         }
         viewModelScope.launch {
             transactionUpdateNotifier.deleted.collect { transactionId ->
                 transactionsCache = transactionsCache.filter { it.id != transactionId }
-                _uiState.value = buildState(transactionsCache, categoriesCache)
+                _uiState.value = buildState(transactionsCache, categoriesCache, accountsCache)
+            }
+        }
+        viewModelScope.launch {
+            accountRepository.observeAccounts().collect { accounts ->
+                accountsCache = accounts
+                _uiState.value = buildState(transactionsCache, categoriesCache, accountsCache)
+            }
+        }
+        viewModelScope.launch {
+            transactionRepository.transactionUpdates.collect {
+                refresh()
             }
         }
     }
@@ -66,9 +87,9 @@ class HomeViewModel @Inject constructor(
     fun refresh() = viewModelScope.launch {
         _uiState.update { it.copy(isLoading = true, error = null) }
         
-        // Lanzamos la carga de cuentas en paralelo para calentar la caché (pre-warm)
+        // Refresh accounts and transactions in parallel
         viewModelScope.launch {
-            accountRepository.getAccounts()
+            accountRepository.getAccounts(forceRefresh = true)
         }
         
         val transactions = transactionRepository.getTransactions()
@@ -76,24 +97,24 @@ class HomeViewModel @Inject constructor(
         transactions.onSuccess { list ->
             transactionsCache = list
             categoriesCache = categories
-            _uiState.value = buildState(list, categories)
+            _uiState.value = buildState(list, categories, accountsCache)
         }
             .onFailure { _uiState.update { it.copy(isLoading = false, error = "No pudimos actualizar tu resumen. Desliza para reintentar.") } }
     }
 
-    private fun buildState(transactions: List<Transaction>, categories: List<Category>): HomeUiState {
+    private fun buildState(transactions: List<Transaction>, categories: List<Category>, accounts: List<co.privado.finly.domain.model.AccountBalance>): HomeUiState {
         val today = LocalDate.now()
         val currentMonth = transactions.filter { it.localDate()?.let { date -> date.year == today.year && date.month == today.month } == true }
         val income = currentMonth.filter { it.type == TransactionType.income }.sumOf { it.amount }
         val expense = currentMonth.filter { it.type == TransactionType.expense }.sumOf { it.amount }
-        val balance = transactions.sumOf { transaction -> when (transaction.type) { TransactionType.income -> transaction.amount; TransactionType.expense -> -transaction.amount; TransactionType.transfer -> 0.0 } }
+        val balance = accounts.filter { it.active }.sumOf { it.balance }
         val categoryNames = categories.associateBy(Category::id)
         val slices = currentMonth.filter { it.type == TransactionType.expense }.groupBy { categoryNames[it.categoryId]?.name ?: "Sin categoría" }.entries.mapIndexed { index, (name, entries) -> ExpenseSlice(name, entries.sumOf { it.amount }, index) }.sortedByDescending { it.amount }.take(4)
         val week = (6 downTo 0).map { offset ->
             val date = today.minusDays(offset.toLong())
             DailyExpense(date.dayOfWeek.name.take(1), transactions.filter { it.type == TransactionType.expense && it.localDate() == date }.sumOf { it.amount })
         }
-        return HomeUiState(false, balance = balance, monthlyIncome = income, monthlyExpense = expense, recentTransactions = transactions.sortedByDescending { it.date }.take(5), expenseSlices = slices, weeklyExpenses = week, categoryNames = categoryNames.mapValues { it.value.name })
+        return HomeUiState(false, balance = balance, monthlyIncome = income, monthlyExpense = expense, recentTransactions = transactions.sortedByDescending { it.date }.take(5), expenseSlices = slices, weeklyExpenses = week, categoryNames = categoryNames.mapValues { it.value.name }, categoryIcons = categoryNames.mapValues { it.value.icon ?: "" })
     }
 }
 

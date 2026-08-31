@@ -20,6 +20,8 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.VisualTransformation
+import co.privado.finly.util.CurrencyVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -34,13 +36,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 
 @Composable
-fun TransactionsScreen(onSaved: () -> Unit = {}, onBack: () -> Unit = {}, viewModel: TransactionsViewModel = hiltViewModel()) {
+@androidx.compose.material3.ExperimentalMaterial3Api
+fun TransactionsScreen(initialType: co.privado.finly.domain.model.TransactionType = co.privado.finly.domain.model.TransactionType.expense, onSaved: () -> Unit = {}, onBack: () -> Unit = {}, viewModel: TransactionsViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsState()
     var amount by rememberSaveable { mutableStateOf("") }
     var merchant by rememberSaveable { mutableStateOf("") }
-    var type by rememberSaveable { mutableStateOf(TransactionType.expense) }
-    var account by remember { mutableStateOf<Account?>(null) }
-    var destination by remember { mutableStateOf<Account?>(null) }
+    var notes by rememberSaveable { mutableStateOf("") }
+    var type by rememberSaveable { mutableStateOf(initialType) }
+    var account by remember { mutableStateOf<co.privado.finly.domain.model.AccountBalance?>(null) }
     var category by remember { mutableStateOf<Category?>(null) }
     var picker by remember { mutableStateOf<String?>(null) }
 
@@ -92,6 +95,7 @@ fun TransactionsScreen(onSaved: () -> Unit = {}, onBack: () -> Unit = {}, viewMo
                 }
 
                 // Tipo
+                if (state.initialTransaction == null) {
                 Text(
                     text = "TIPO",
                     style = TypographyEyebrow,
@@ -112,8 +116,7 @@ fun TransactionsScreen(onSaved: () -> Unit = {}, onBack: () -> Unit = {}, viewMo
                     val options = listOf(
                         TransactionType.expense to "Gasto",
                         TransactionType.income to "Ingreso",
-                        TransactionType.transfer to "Transferencia"
-                    )
+                        )
                     options.forEach { (optType, label) ->
                         val selected = type == optType
                         Box(
@@ -126,7 +129,6 @@ fun TransactionsScreen(onSaved: () -> Unit = {}, onBack: () -> Unit = {}, viewMo
                                         type = optType
                                         category = null
                                         account = null
-                                        destination = null
                                     }
                                 }
                                 .padding(vertical = 10.dp),
@@ -143,15 +145,28 @@ fun TransactionsScreen(onSaved: () -> Unit = {}, onBack: () -> Unit = {}, viewMo
                         }
                     }
                 }
+                }
 
                 // Monto
                 FinlyTextField(
                     label = "Monto (COP)",
                     value = amount,
-                    onValueChange = { amount = it },
-                    placeholder = "$0",
+                    onValueChange = { if (it.length <= 12) amount = it.filter { char -> char.isDigit() } },
+                    placeholder = "0",
                     isBig = true,
-                    keyboardType = KeyboardType.Decimal
+                    keyboardType = KeyboardType.Number,
+                    visualTransformation = CurrencyVisualTransformation(),
+                    prefix = {
+                        Text(
+                            text = "$",
+                            style = TextStyle(
+                                fontFamily = Fraunces,
+                                fontSize = 26.sp,
+                                color = ColorBrass
+                            ),
+                            modifier = Modifier.padding(end = 4.dp)
+                        )
+                    }
                 )
 
                 // Cuenta
@@ -162,25 +177,24 @@ fun TransactionsScreen(onSaved: () -> Unit = {}, onBack: () -> Unit = {}, viewMo
                     onClick = { picker = "account" }
                 )
 
-                // Destino (si es transferencia)
-                if (type == TransactionType.transfer) {
-                    FinlyPickerField(
-                        label = "Cuenta destino",
-                        value = destination?.name ?: "Seleccionar cuenta destino",
-                        isPlaceholder = destination == null,
-                        onClick = { picker = "destination" }
-                    )
-                }
 
-                // Categoría (si no es transferencia)
-                if (type != TransactionType.transfer) {
-                    FinlyPickerField(
-                        label = "Categoría",
-                        value = category?.name ?: "Sin categoría",
-                        isPlaceholder = category == null,
-                        onClick = { picker = "category" }
-                    )
-                }
+                // Categoría
+                FinlyPickerField(
+                    label = "Categoría",
+                    value = category?.name ?: "Sin categoría",
+                    isPlaceholder = category == null,
+                    onClick = { picker = "category" }
+                )
+
+                
+                // Nota
+                FinlyTextField(
+                    label = "Nota (opcional)",
+                    value = notes,
+                    onValueChange = { notes = it },
+                    placeholder = "Ej. Almuerzo de trabajo",
+                    isBig = false
+                )
 
                 // Comercio
                 FinlyTextField(
@@ -190,21 +204,22 @@ fun TransactionsScreen(onSaved: () -> Unit = {}, onBack: () -> Unit = {}, viewMo
                     placeholder = when (type) {
                         TransactionType.expense -> "Ej. Rappi, Éxito..."
                         TransactionType.income -> "Ej. Quincena..."
-                        TransactionType.transfer -> "Ej. Transferencia a bolsillo"
                     },
                     isBig = false
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
 
+                val canSave = !state.isSaving && account != null && category != null && amount.isNotBlank() && amount != "0"
+
                 // Button
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
-                        .background(if (state.isSaving || state.accounts.isEmpty()) ColorSurfaceHi else ColorBrass)
-                        .clickable(enabled = !state.isSaving && state.accounts.isNotEmpty()) {
-                            viewModel.save(amount, type, account?.id, destination?.id, category?.id, merchant, onSaved)
+                        .background(if (!canSave) ColorSurfaceHi else ColorBrass)
+                        .clickable(enabled = canSave) {
+                            viewModel.save(amount, type, account?.id, null, category?.id, merchant, notes.takeIf { it.isNotBlank() }, onSaved)
                         }
                         .padding(vertical = 16.dp),
                     contentAlignment = Alignment.Center
@@ -217,7 +232,7 @@ fun TransactionsScreen(onSaved: () -> Unit = {}, onBack: () -> Unit = {}, viewMo
                             style = TextStyle(
                                 fontSize = 14.5.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = if (state.accounts.isEmpty()) ColorSlate else Color(0xFF1A1305)
+                                color = if (!canSave) ColorSlate else Color(0xFF1A1305)
                             )
                         )
                     }
@@ -227,9 +242,8 @@ fun TransactionsScreen(onSaved: () -> Unit = {}, onBack: () -> Unit = {}, viewMo
     }
 
     when (picker) {
-        "account" -> AccountPicker("Selecciona una cuenta", state.accounts, { account = it; picker = null }, { picker = null })
-        "destination" -> AccountPicker("Selecciona la cuenta destino", state.accounts.filter { it.id != account?.id }, { destination = it; picker = null }, { picker = null })
-        "category" -> CategoryPicker(state.categories.filter { it.type.name == type.name }, { category = it; picker = null }, { picker = null })
+        "account" -> AccountPicker(title = "Selecciona una cuenta", items = state.accounts, select = { account = it; picker = null }, dismiss = { picker = null })
+        "category" -> CategoryPicker(items = state.categories.filter { it.type.name == type.name }, select = { category = it; picker = null }, dismiss = { picker = null })
         null -> Unit
     }
     
@@ -250,7 +264,9 @@ fun FinlyTextField(
     onValueChange: (String) -> Unit,
     placeholder: String,
     isBig: Boolean,
-    keyboardType: KeyboardType = KeyboardType.Text
+    keyboardType: KeyboardType = KeyboardType.Text,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    prefix: @Composable (() -> Unit)? = null
 ) {
     Box(
         modifier = Modifier
@@ -284,18 +300,26 @@ fun FinlyTextField(
                 singleLine = true,
                 cursorBrush = SolidColor(ColorBrass),
                 modifier = Modifier.fillMaxWidth(),
+                visualTransformation = visualTransformation,
                 decorationBox = { innerTextField ->
-                    if (value.isEmpty()) {
-                        Text(
-                            text = placeholder,
-                            style = TextStyle(
-                                fontFamily = if (isBig) Fraunces else Inter,
-                                fontSize = if (isBig) 26.sp else 15.sp,
-                                color = Color(0xFF4C555F)
-                            )
-                        )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (prefix != null) {
+                            prefix()
+                        }
+                        Box(modifier = Modifier.weight(1f)) {
+                            if (value.isEmpty()) {
+                                Text(
+                                    text = placeholder,
+                                    style = TextStyle(
+                                        fontFamily = if (isBig) Fraunces else Inter,
+                                        fontSize = if (isBig) 26.sp else 15.sp,
+                                        color = Color(0xFF4C555F)
+                                    )
+                                )
+                            }
+                            innerTextField()
+                        }
                     }
-                    innerTextField()
                 }
             )
         }
@@ -342,33 +366,3 @@ fun FinlyPickerField(
     }
 }
 
-@Composable
-private fun AccountPicker(title: String, items: List<Account>, select: (Account) -> Unit, dismiss: () -> Unit) = 
-    AlertDialog(
-        onDismissRequest = dismiss, 
-        title = { Text(title) }, 
-        text = { 
-            Column { 
-                items.forEach { 
-                    TextButton(onClick = { select(it) }, modifier = Modifier.fillMaxWidth()) { Text(it.name) } 
-                } 
-            } 
-        }, 
-        confirmButton = { TextButton(onClick = dismiss) { Text("Cancelar") } }
-    )
-
-@Composable
-private fun CategoryPicker(items: List<Category>, select: (Category) -> Unit, dismiss: () -> Unit) = 
-    AlertDialog(
-        onDismissRequest = dismiss, 
-        title = { Text("Selecciona una categoría") }, 
-        text = { 
-            Column { 
-                TextButton(onClick = { dismiss() }, modifier = Modifier.fillMaxWidth()) { Text("Sin categoría") }
-                items.forEach { 
-                    TextButton(onClick = { select(it) }, modifier = Modifier.fillMaxWidth()) { Text(it.name) } 
-                } 
-            } 
-        }, 
-        confirmButton = { TextButton(onClick = dismiss) { Text("Cancelar") } }
-    )

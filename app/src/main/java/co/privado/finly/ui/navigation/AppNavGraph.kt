@@ -36,6 +36,8 @@ import co.privado.finly.ui.theme.ColorInk
 import co.privado.finly.ui.theme.ColorSlate
 import co.privado.finly.ui.theme.IbmPlexMono
 
+@androidx.compose.material3.ExperimentalMaterial3Api
+@kotlin.OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun AppNavGraph(
     authCheckViewModel: AuthCheckViewModel = hiltViewModel()

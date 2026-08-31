@@ -20,7 +20,8 @@ private data class AccountPayload(
     @SerialName("user_id") val userId: String,
     val name: String,
     val type: AccountType,
-    val currency: String
+    val currency: String,
+    @SerialName("opening_balance") val openingBalance: Double
 )
 
 @Singleton
@@ -29,47 +30,49 @@ class AccountRepositoryImpl @Inject constructor(
     private val sessionStore: SessionDataStore
 ) : AccountRepository {
 
-    private val _state = MutableStateFlow<List<Account>?>(null)
+    private val _state = MutableStateFlow<List<co.privado.finly.domain.model.AccountBalance>?>(null)
 
-    override fun observeAccounts(): Flow<List<Account>> = _state.asStateFlow().map { it ?: emptyList() }
+    override fun observeAccounts(): Flow<List<co.privado.finly.domain.model.AccountBalance>> = _state.asStateFlow().map { it ?: emptyList() }
 
-    override suspend fun getAccounts(forceRefresh: Boolean): Result<List<Account>> = runCatching {
+    override suspend fun getAccounts(forceRefresh: Boolean): Result<List<co.privado.finly.domain.model.AccountBalance>> = runCatching {
         if (!forceRefresh && _state.value != null) {
             return@runCatching _state.value!!
         }
-        val accounts = supabase.from("accounts").select().decodeList<Account>().sortedBy { it.name.lowercase() }
+        val accounts = supabase.from("account_balances").select().decodeList<co.privado.finly.domain.model.AccountBalance>().sortedBy { it.name.lowercase() }
         _state.value = accounts
         accounts
     }
 
-    override suspend fun addAccount(name: String, type: AccountType, currency: String): Result<Account> = runCatching {
+    override suspend fun addAccount(name: String, type: AccountType, openingBalance: Double, currency: String): Result<Account> = runCatching {
         val userId = sessionStore.getUserId() ?: throw java.lang.IllegalStateException("Tu sesión expiró. Inicia sesión nuevamente.")
         val acc = supabase.from("accounts").insert(
-            AccountPayload(userId = userId, name = name.trim(), type = type, currency = currency)
+            AccountPayload(userId = userId, name = name.trim(), type = type, currency = currency, openingBalance = openingBalance)
         ) { select() }.decodeSingle<Account>()
-        _state.value = null // Invalidate cache
+        getAccounts(forceRefresh = true)
         acc
     }
 
-    override suspend fun updateAccount(account: Account): Result<Account> = runCatching {
+    override suspend fun updateAccount(id: String, name: String, type: AccountType, openingBalance: Double, currency: String): Result<Account> = runCatching {
+        val userId = sessionStore.getUserId() ?: throw java.lang.IllegalStateException("Tu sesión expiró. Inicia sesión nuevamente.")
         val acc = supabase.from("accounts").update(
             AccountPayload(
-                userId = account.userId,
-                name = account.name.trim(),
-                type = account.type,
-                currency = account.currency
+                userId = userId,
+                name = name.trim(),
+                type = type,
+                currency = currency,
+                openingBalance = openingBalance
             )
         ) {
-            filter { eq("id", account.id) }
+            filter { eq("id", id) }
             select()
         }.decodeSingle<Account>()
-        _state.value = null // Invalidate cache
+        getAccounts(forceRefresh = true)
         acc
     }
 
     override suspend fun deleteAccount(id: String): Result<Unit> = runCatching {
         supabase.from("accounts").delete { filter { eq("id", id) } }
-        _state.value = null // Invalidate cache
+        getAccounts(forceRefresh = true)
         Unit
     }
 

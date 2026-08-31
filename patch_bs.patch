@@ -1,0 +1,50 @@
+--- app/src/main/java/co/privado/finly/ui/navigation/MainScreen.kt
++++ app/src/main/java/co/privado/finly/ui/navigation/MainScreen.kt
+@@ -263,4 +263,41 @@
+             }
+         }
+     }
++
++    if (showTransactionTypeSheet) {
++        @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
++        androidx.compose.material3.ModalBottomSheet(
++            onDismissRequest = { showTransactionTypeSheet = false },
++            containerColor = co.privado.finly.ui.theme.ColorSurface,
++            sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
++        ) {
++            Column(
++                Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp).padding(bottom = 32.dp),
++                horizontalAlignment = Alignment.CenterHorizontally
++            ) {
++                Text("¿Qué vas a registrar?", fontFamily = co.privado.finly.ui.theme.Fraunces, fontSize = 24.sp, color = co.privado.finly.ui.theme.ColorBone, fontWeight = FontWeight.Medium)
++                Spacer(Modifier.height(32.dp))
++                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
++                    Surface(
++                        onClick = { showTransactionTypeSheet = false; nav.navigate("${Routes.AddTransaction}/expense") },
++                        modifier = Modifier.weight(1f).aspectRatio(1.2f),
++                        shape = RoundedCornerShape(20.dp),
++                        color = co.privado.finly.ui.theme.ColorClay.copy(alpha = 0.15f)
++                    ) {
++                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
++                            Icon(Icons.Filled.ArrowDownward, contentDescription = null, tint = co.privado.finly.ui.theme.ColorClay, modifier = Modifier.size(36.dp))
++                            Spacer(Modifier.height(8.dp))
++                            Text("Gasto", fontFamily = co.privado.finly.ui.theme.Inter, fontWeight = FontWeight.SemiBold, color = co.privado.finly.ui.theme.ColorClay)
++                        }
++                    }
++                    Surface(
++                        onClick = { showTransactionTypeSheet = false; nav.navigate("${Routes.AddTransaction}/income") },
++                        modifier = Modifier.weight(1f).aspectRatio(1.2f),
++                        shape = RoundedCornerShape(20.dp),
++                        color = co.privado.finly.ui.theme.ColorMoss.copy(alpha = 0.15f)
++                    ) {
++                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
++                            Icon(Icons.Filled.ArrowUpward, contentDescription = null, tint = co.privado.finly.ui.theme.ColorMoss, modifier = Modifier.size(36.dp))
++                            Spacer(Modifier.height(8.dp))
++                            Text("Ingreso", fontFamily = co.privado.finly.ui.theme.Inter, fontWeight = FontWeight.SemiBold, color = co.privado.finly.ui.theme.ColorMoss)
++                        }
++                    }
++                }
++            }
++        }
++    }
+ }

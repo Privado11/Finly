@@ -1,0 +1,95 @@
+--- app/src/main/java/co/privado/finly/ui/navigation/MainScreen.kt
++++ app/src/main/java/co/privado/finly/ui/navigation/MainScreen.kt
+@@ -19,6 +19,11 @@
+ import androidx.activity.compose.rememberLauncherForActivityResult
+ import androidx.activity.result.contract.ActivityResultContracts
+ import androidx.compose.ui.platform.LocalContext
++import androidx.compose.runtime.mutableStateOf
++import androidx.compose.runtime.getValue
++import androidx.compose.runtime.setValue
++import androidx.compose.material.icons.filled.ArrowDownward
++import androidx.compose.material.icons.filled.ArrowUpward
+ import androidx.core.content.ContextCompat
+ import android.content.pm.PackageManager
+ 
+@@ -185,6 +190,7 @@
+     val isMainRoute = currentDestination?.route in bottomNavItems.map { it.route }
+     
+     val snackbarHostState = remember { SnackbarHostState() }
++    var showTransactionTypeSheet by remember { mutableStateOf(false) }
+     val context = LocalContext.current
+     val requestPermissionLauncher = rememberLauncherForActivityResult(
+@@ -282,7 +288,7 @@
+         },
+         floatingActionButton = {
+             if (isMainRoute) {
+-                FinlyFab(onClick = { nav.navigate(Routes.AddTransaction) })
++                FinlyFab(onClick = { showTransactionTypeSheet = true })
+             }
+         }
+     ) { padding ->
+@@ -300,7 +306,15 @@
+             ) {
+                 TransactionDetailScreen(onBack = { nav.popBackStack() })
+             }
+-            composable(Routes.AddTransaction) { TransactionsScreen(onSaved = { nav.popBackStack() }, onBack = { nav.popBackStack() }) }
++            composable(
++                route = "${Routes.AddTransaction}/{type}",
++                arguments = listOf(navArgument("type") { type = NavType.StringType })
++            ) { backStackEntry ->
++                val typeStr = backStackEntry.arguments?.getString("type")
++                val initialType = if (typeStr == "income") co.privado.finly.domain.model.TransactionType.income else co.privado.finly.domain.model.TransactionType.expense
++                TransactionsScreen(initialType = initialType, onSaved = { nav.popBackStack() }, onBack = { nav.popBackStack() })
++            }
++            composable(Routes.AddTransaction) { TransactionsScreen(initialType = co.privado.finly.domain.model.TransactionType.expense, onSaved = { nav.popBackStack() }, onBack = { nav.popBackStack() }) } // fallback just in case
+             composable(Routes.Transactions) { TransactionsScreen(onSaved = { nav.popBackStack() }, onBack = { nav.popBackStack() }) } // fallback just in case
+             composable("EditTransaction/{transactionId}") { TransactionsScreen(onSaved = { nav.popBackStack() }, onBack = { nav.popBackStack() }) }
+             composable(Routes.Accounts) { AccountsScreen() }
+@@ -314,4 +328,41 @@
+             }
+         }
+     }
++
++    if (showTransactionTypeSheet) {
++        @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
++        androidx.compose.material3.ModalBottomSheet(
++            onDismissRequest = { showTransactionTypeSheet = false },
++            containerColor = co.privado.finly.ui.theme.ColorSurface,
++            sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
++        ) {
++            Column(
++                Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp).padding(bottom = 32.dp),
++                horizontalAlignment = Alignment.CenterHorizontally
++            ) {
++                Text("¿Qué vas a registrar?", fontFamily = co.privado.finly.ui.theme.Fraunces, fontSize = 24.sp, color = co.privado.finly.ui.theme.ColorBone, fontWeight = FontWeight.Medium)
++                Spacer(Modifier.height(32.dp))
++                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
++                    Surface(
++                        onClick = { showTransactionTypeSheet = false; nav.navigate("${Routes.AddTransaction}/expense") },
++                        modifier = Modifier.weight(1f).aspectRatio(1.2f),
++                        shape = RoundedCornerShape(20.dp),
++                        color = co.privado.finly.ui.theme.ColorClay.copy(alpha = 0.15f)
++                    ) {
++                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
++                            Icon(Icons.Filled.ArrowDownward, contentDescription = null, tint = co.privado.finly.ui.theme.ColorClay, modifier = Modifier.size(36.dp))
++                            Spacer(Modifier.height(8.dp))
++                            Text("Gasto", fontFamily = co.privado.finly.ui.theme.Inter, fontWeight = FontWeight.SemiBold, color = co.privado.finly.ui.theme.ColorClay)
++                        }
++                    }
++                    Surface(
++                        onClick = { showTransactionTypeSheet = false; nav.navigate("${Routes.AddTransaction}/income") },
++                        modifier = Modifier.weight(1f).aspectRatio(1.2f),
++                        shape = RoundedCornerShape(20.dp),
++                        color = co.privado.finly.ui.theme.ColorMoss.copy(alpha = 0.15f)
++                    ) {
++                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
++                            Icon(Icons.Filled.ArrowUpward, contentDescription = null, tint = co.privado.finly.ui.theme.ColorMoss, modifier = Modifier.size(36.dp))
++                            Spacer(Modifier.height(8.dp))
++                            Text("Ingreso", fontFamily = co.privado.finly.ui.theme.Inter, fontWeight = FontWeight.SemiBold, color = co.privado.finly.ui.theme.ColorMoss)
++                        }
++                    }
++                }
++            }
++        }
++    }
+ }

@@ -16,4 +16,5 @@ object Routes {
     const val ReviewQueue = "review_queue"
     const val More = "more"
     const val Settings = "settings"
+    const val Stats = "stats"
 }

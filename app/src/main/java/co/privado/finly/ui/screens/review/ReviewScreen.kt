@@ -106,9 +106,13 @@ fun ReviewScreen(viewModel: ReviewViewModel = hiltViewModel()) {
     itemToClassify?.let { item ->
         ClassifyDialog(
             item = item,
+            accounts = uiState.accounts,
+            categories = uiState.categories,
             onDismiss = { itemToClassify = null },
-            onSave = {
-                item.id?.let { id -> viewModel.markAsResolved(id, "Movimiento guardado con éxito") }
+            onSave = { amount, accountId, categoryId, type, merchant ->
+                item.id?.let { id -> 
+                    viewModel.saveTransactionAndResolve(id, amount, accountId, categoryId, type, merchant, merchant) 
+                }
                 itemToClassify = null
             }
         )

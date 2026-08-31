@@ -22,6 +22,7 @@ import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.functions.Functions
 import io.github.jan.supabase.realtime.Realtime
+import io.ktor.client.plugins.HttpTimeout
 import javax.inject.Singleton
 
 @Module
@@ -35,6 +36,7 @@ object SupabaseModule {
             supabaseUrl = BuildConfig.SUPABASE_URL,
             supabaseKey = BuildConfig.SUPABASE_ANON_KEY
         ) {
+            requestTimeout = kotlin.time.Duration.parse("30s") // 30 segundos
             install(Auth) { alwaysAutoRefresh = true }
             install(Postgrest)
             install(Functions)

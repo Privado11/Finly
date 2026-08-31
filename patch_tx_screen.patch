@@ -1,0 +1,43 @@
+--- app/src/main/java/co/privado/finly/ui/screens/transactions/TransactionsScreen.kt
++++ app/src/main/java/co/privado/finly/ui/screens/transactions/TransactionsScreen.kt
+@@ -165,30 +165,11 @@
+                     onClick = { picker = "account" }
+                 )
+ 
+-                // Destino (si es transferencia)
+-                if (type == TransactionType.transfer) {
+-                    FinlyPickerField(
+-                        label = "Cuenta destino",
+-                        value = destination?.name ?: "Seleccionar cuenta destino",
+-                        isPlaceholder = destination == null,
+-                        onClick = { picker = "destination" }
+-                    )
+-                }
+-
+-                // Categoría (si no es transferencia)
+-                if (type != TransactionType.transfer) {
+-                    FinlyPickerField(
+-                        label = "Categoría",
+-                        value = category?.name ?: "Sin categoría",
+-                        isPlaceholder = category == null,
+-                        onClick = { picker = "category" }
+-                    )
+-                }
++                FinlyPickerField(
++                    label = "Categoría",
++                    value = category?.name ?: "Sin categoría",
++                    isPlaceholder = category == null,
++                    onClick = { picker = "category" }
++                )
+ 
+                 // Comercio
+                 FinlyTextField(
+@@ -197,7 +178,6 @@
+                     onValueChange = { merchant = it },
+                     placeholder = when (type) {
+                         TransactionType.expense -> "Ej. Rappi, Éxito..."
+                         TransactionType.income -> "Ej. Quincena..."
+-                        TransactionType.transfer -> "Ej. Transferencia a bolsillo"
+                     },
+                     isBig = false
+                 )

@@ -22,6 +22,7 @@ data class TransactionDetailUiState(
     val sourceAccountName: String = "",
     val destinationAccountName: String = "",
     val categoryName: String = "",
+    val categoryIcon: String = "",
     val isDeleting: Boolean = false,
     val isDeleted: Boolean = false
 )
@@ -41,6 +42,13 @@ class TransactionDetailViewModel @Inject constructor(
 
     init {
         loadTransaction()
+        viewModelScope.launch {
+            transactionUpdateNotifier.created.collect { transaction ->
+                if (transaction.id == transactionId) {
+                    loadTransaction()
+                }
+            }
+        }
     }
 
     private fun loadTransaction() = viewModelScope.launch {
@@ -56,14 +64,17 @@ class TransactionDetailViewModel @Inject constructor(
             
             val sourceName = accounts.find { it.id == tx.sourceAccountId }?.name ?: "Cuenta desconocida"
             val destName = accounts.find { it.id == tx.destinationAccountId }?.name ?: ""
-            val catName = categories.find { it.id == tx.categoryId }?.name ?: "Sin categoría"
+            val cat = categories.find { it.id == tx.categoryId }
+            val catName = cat?.name ?: "Sin categoría"
+            val catIcon = cat?.icon ?: ""
             
             _uiState.value = TransactionDetailUiState(
                 isLoading = false,
                 transaction = tx,
                 sourceAccountName = sourceName,
                 destinationAccountName = destName,
-                categoryName = catName
+                categoryName = catName,
+                categoryIcon = catIcon
             )
         }.onFailure {
             _uiState.update { it.copy(isLoading = false, error = "No pudimos cargar los detalles del movimiento.") }

@@ -91,10 +91,7 @@ class RegisterViewModel @Inject constructor(
 
     private suspend fun obtenerGoogleIdToken(activity: FragmentActivity): String? {
         val credentialManager = CredentialManager.create(activity)
-        val option = GetGoogleIdOption.Builder()
-            .setFilterByAuthorizedAccounts(false) // siempre muestra el selector
-            .setServerClientId(BuildConfig.GOOGLE_WEB_CLIENT_ID)
-            .setAutoSelectEnabled(false)           // nunca silencioso
+        val option = com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption.Builder(BuildConfig.GOOGLE_WEB_CLIENT_ID)
             .build()
         return try {
             val result = credentialManager.getCredential(

@@ -2,7 +2,7 @@ package co.privado.finly.ui.screens.accounts
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import co.privado.finly.domain.model.Account
+import co.privado.finly.domain.model.AccountBalance
 import co.privado.finly.domain.model.AccountType
 import co.privado.finly.domain.repository.AccountRepository
 import co.privado.finly.ui.state.GlobalMessageNotifier
@@ -15,12 +15,13 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class AccountsUiState(
-    val accounts: List<Account> = emptyList(),
+    val accounts: List<AccountBalance> = emptyList(),
     val isLoading: Boolean = true,
     val isSaving: Boolean = false,
     val error: String? = null,
     val showCreateDialog: Boolean = false,
-    val accountToDelete: Account? = null
+    val accountToDelete: AccountBalance? = null,
+    val accountToEdit: AccountBalance? = null
 )
 
 @HiltViewModel
@@ -31,56 +32,65 @@ class AccountsViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(AccountsUiState())
     val uiState: StateFlow<AccountsUiState> = _uiState.asStateFlow()
 
-    init { loadAccounts() }
+    init {
+        viewModelScope.launch {
+            accountRepository.observeAccounts().collect { accounts ->
+                if (accounts.isNotEmpty() || !_uiState.value.isLoading) {
+                    _uiState.update { it.copy(accounts = accounts, isLoading = false) }
+                }
+            }
+        }
+        loadAccounts() 
+    }
 
     fun loadAccounts() = viewModelScope.launch {
         _uiState.update { it.copy(isLoading = true, error = null) }
-        accountRepository.getAccounts()
-            .onSuccess { accounts -> _uiState.update { it.copy(accounts = accounts, isLoading = false) } }
-            .onFailure { error -> _uiState.update { it.copy(isLoading = false, error = readableError(error)) } }
+        accountRepository.getAccounts(forceRefresh = true)
+            .onSuccess { accounts -> 
+                _uiState.update { it.copy(accounts = accounts, isLoading = false) } 
+            }
+            .onFailure { error -> 
+                _uiState.update { it.copy(isLoading = false, error = readableError(error)) } 
+            }
     }
 
-    fun showCreateDialog(show: Boolean) = _uiState.update { it.copy(showCreateDialog = show, error = null) }
+    fun showCreateDialog(show: Boolean) = _uiState.update { it.copy(showCreateDialog = show, error = null, accountToEdit = null) }
     
-    fun showDeleteDialog(account: Account?) = _uiState.update { it.copy(accountToDelete = account, error = null) }
+    fun showEditDialog(account: AccountBalance?) = _uiState.update { it.copy(accountToEdit = account, showCreateDialog = true, error = null) }
+    
+    fun showDeleteDialog(account: AccountBalance?) = _uiState.update { it.copy(accountToDelete = account, error = null) }
 
-    fun deleteAccount(account: Account) {
+    fun deleteAccount(account: AccountBalance) {
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true, error = null) }
             accountRepository.deleteAccount(account.id)
                 .onSuccess { 
-                    _uiState.update { state -> 
-                        state.copy(
-                            accounts = state.accounts.filter { it.id != account.id }, 
-                            isSaving = false, 
-                            accountToDelete = null 
-                        ) 
-                    }
+                    _uiState.update { it.copy(isSaving = false, accountToDelete = null) }
                     globalMessageNotifier.showMessage("Cuenta eliminada")
                 }
                 .onFailure { error -> _uiState.update { it.copy(isSaving = false, error = readableError(error), accountToDelete = null) } }
         }
     }
 
-    fun createAccount(name: String, type: AccountType) {
+    fun saveAccount(id: String?, name: String, type: AccountType, openingBalance: Double = 0.0) {
         if (name.isBlank()) {
             _uiState.update { it.copy(error = "Escribe un nombre para la cuenta.") }
             return
         }
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true, error = null) }
-            accountRepository.addAccount(name, type)
-                .onSuccess { created ->
-                    _uiState.update {
-                        it.copy(
-                            accounts = (it.accounts + created).sortedBy { account -> account.name.lowercase() },
-                            isSaving = false,
-                            showCreateDialog = false
-                        )
-                    }
-                    globalMessageNotifier.showMessage("Cuenta creada")
-                }
-                .onFailure { error -> _uiState.update { it.copy(isSaving = false, error = readableError(error)) } }
+            val result = if (id == null) {
+                accountRepository.addAccount(name, type, openingBalance)
+            } else {
+                accountRepository.updateAccount(id, name, type, openingBalance)
+            }
+            
+            result.onSuccess {
+                _uiState.update { it.copy(isSaving = false, showCreateDialog = false, accountToEdit = null) }
+                globalMessageNotifier.showMessage(if (id == null) "Cuenta creada" else "Cuenta actualizada")
+            }.onFailure { error -> 
+                _uiState.update { it.copy(isSaving = false, error = readableError(error)) }
+            }
         }
     }
 
@@ -91,6 +101,7 @@ class AccountsViewModel @Inject constructor(
         return when {
             message.contains("network", ignoreCase = true) || message.contains("resolve", ignoreCase = true) -> "No pudimos conectar con Finly. Revisa tu conexión."
             message.contains("sesión expiró", ignoreCase = true) -> message
+            message.contains("23514") -> "El saldo inicial no puede ser negativo para este tipo de cuenta."
             message.contains("foreign key", ignoreCase = true) || message.contains("violates", ignoreCase = true) -> "No puedes eliminar esta cuenta porque tiene movimientos registrados."
             else -> "No fue posible completar la acción. Inténtalo de nuevo."
         }

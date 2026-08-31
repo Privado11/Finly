@@ -29,7 +29,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val biometricEnabled by viewModel.biometricEnabled.collectAsState()
-    var notificationsEnabled by remember { mutableStateOf(true) }
+    val notificationsEnabled by viewModel.appNotificationsEnabled.collectAsState()
     val userEmail by viewModel.userEmail.collectAsState()
     val userName by viewModel.userName.collectAsState()
     
@@ -115,11 +115,18 @@ fun SettingsScreen(
                     onClick = { /* TODO */ }
                 )
                 HorizontalDivider(color = ColorHair, modifier = Modifier.padding(horizontal = 16.dp))
+                SettingsRow(
+                    icon = Icons.Filled.Notifications,
+                    title = "Probar notificación",
+                    value = "Enviar",
+                    onClick = { viewModel.testNotification() }
+                )
+                HorizontalDivider(color = ColorHair, modifier = Modifier.padding(horizontal = 16.dp))
                 SettingsToggleRow(
                     icon = Icons.Filled.Notifications,
                     title = "Notificaciones",
                     checked = notificationsEnabled,
-                    onCheckedChange = { notificationsEnabled = it }
+                    onCheckedChange = { viewModel.setAppNotificationsEnabled(it) }
                 )
             }
             

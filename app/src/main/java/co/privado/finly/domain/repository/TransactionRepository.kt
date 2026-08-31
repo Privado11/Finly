@@ -8,7 +8,9 @@ interface TransactionRepository {
     suspend fun getTransactions(): Result<List<Transaction>>
     suspend fun getTransactionById(id: String): Result<Transaction>
     suspend fun addTransaction(transaction: Transaction): Result<Transaction>
+    suspend fun updateTransaction(id: String, transaction: Transaction): Result<Transaction>
     suspend fun deleteTransaction(id: String): Result<Unit>
     suspend fun existsDuplicate(amount: Double, sourceAccountId: String, windowMinutes: Int = 10): Boolean
     fun clearCache()
+    val transactionUpdates: kotlinx.coroutines.flow.SharedFlow<Unit>
 }

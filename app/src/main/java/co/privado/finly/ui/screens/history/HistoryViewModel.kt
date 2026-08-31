@@ -23,7 +23,7 @@ import javax.inject.Inject
 import co.privado.finly.domain.model.TransactionType
 
 enum class TransactionFilter {
-    ALL, INCOME, EXPENSE, TRANSFER
+    ALL, INCOME, EXPENSE
 }
 
 data class HistoryUiState(
@@ -31,6 +31,7 @@ data class HistoryUiState(
     val error: String? = null,
     val groupedTransactions: Map<String, List<Transaction>> = emptyMap(),
     val categoryNames: Map<String, String> = emptyMap(),
+    val categoryIcons: Map<String, String> = emptyMap(),
     val filter: TransactionFilter = TransactionFilter.ALL
 )
 
@@ -51,7 +52,7 @@ class HistoryViewModel @Inject constructor(
         refresh()
         viewModelScope.launch {
             transactionUpdateNotifier.created.collect { transaction ->
-                transactionsCache = (transactionsCache + transaction).distinctBy { it.id }
+                transactionsCache = transactionsCache.filter { it.id != transaction.id } + transaction
                 _uiState.value = buildState(transactionsCache, categoriesCache, _uiState.value.filter)
             }
         }
@@ -59,6 +60,11 @@ class HistoryViewModel @Inject constructor(
             transactionUpdateNotifier.deleted.collect { transactionId ->
                 transactionsCache = transactionsCache.filter { it.id != transactionId }
                 _uiState.value = buildState(transactionsCache, categoriesCache, _uiState.value.filter)
+            }
+        }
+        viewModelScope.launch {
+            transactionRepository.transactionUpdates.collect {
+                refresh()
             }
         }
     }
@@ -90,7 +96,6 @@ class HistoryViewModel @Inject constructor(
             TransactionFilter.ALL -> transactions
             TransactionFilter.INCOME -> transactions.filter { it.type == TransactionType.income }
             TransactionFilter.EXPENSE -> transactions.filter { it.type == TransactionType.expense }
-            TransactionFilter.TRANSFER -> transactions.filter { it.type == TransactionType.transfer }
         }
         
         val sorted = filtered.sortedByDescending { it.date }
@@ -107,11 +112,13 @@ class HistoryViewModel @Inject constructor(
         }
         
         val categoryNames = categories.associate { it.id!! to it.name }
+        val categoryIcons = categories.associate { it.id!! to (it.icon ?: "") }
         
         return HistoryUiState(
             isLoading = false,
             groupedTransactions = grouped,
             categoryNames = categoryNames,
+            categoryIcons = categoryIcons,
             filter = filter
         )
     }

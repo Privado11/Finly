@@ -1,0 +1,30 @@
+--- app/src/main/java/co/privado/finly/ui/screens/transaction_detail/TransactionDetailScreen.kt
++++ app/src/main/java/co/privado/finly/ui/screens/transaction_detail/TransactionDetailScreen.kt
+@@ -137,17 +137,11 @@
+                         DetailRow("Fecha", formatDate(tx.date))
+                         Divider()
+                         
+-                        val defaultTitle = if (tx.type == TransactionType.transfer) "Transferencia" else "Movimiento"
++                        val defaultTitle = "Movimiento"
+                         val displayTitle = tx.merchant?.takeIf { it.isNotBlank() } ?: (tx.categoryId?.let { state.categoryName } ?: defaultTitle)
+                         DetailRow(if (tx.type == TransactionType.expense) "Comercio" else "Descripción", displayTitle)
+                         Divider()
+                         
+-                        if (tx.type == TransactionType.transfer) {
+-                            DetailRow("Cuenta origen", state.sourceAccountName)
+-                            Divider()
+-                            DetailRow("Cuenta destino", state.destinationAccountName)
+-                        } else {
+-                            DetailRow("Cuenta", state.sourceAccountName)
+-                        }
++                        DetailRow("Cuenta", state.sourceAccountName)
+                         
+                         if (tx.categoryId != null) {
+@@ -284,7 +278,6 @@
+ private fun TransactionType.label() = when (this) { 
+     TransactionType.income -> "Ingreso"
+     TransactionType.expense -> "Gasto"
+-    TransactionType.transfer -> "Transferencia" 
+ }
+ 
+ private fun TransactionSource.label() = when (this) {
